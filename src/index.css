@@ -169,6 +169,41 @@ body {
     line-height: 1.2;
 }
 
+.building-marker-group {
+    gap: clamp(
+        0.03125rem,
+        calc(var(--board-size) * 0.002),
+        0.09375rem
+    );
+    line-height: 0;
+}
+
+.building-marker-house {
+    height: clamp(
+        0.72rem,
+        calc(var(--board-size) * 0.016),
+        1rem
+    );
+    width: clamp(
+        0.84rem,
+        calc(var(--board-size) * 0.019),
+        1.2rem
+    );
+}
+
+.building-marker-hotel {
+    height: clamp(
+        0.9rem,
+        calc(var(--board-size) * 0.024),
+        1.5rem
+    );
+    width: clamp(
+        1.35rem,
+        calc(var(--board-size) * 0.036),
+        2.25rem
+    );
+}
+
 @keyframes property-purchase-progress {
     from {
         width: 100%;

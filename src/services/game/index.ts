@@ -1,3 +1,3 @@
 export { apiGameService } from './apiGameService';
-export { cardAPI } from './localCardService';
+export { cardActionService } from './localCardService';
 export { gameAPI } from './localGameService';

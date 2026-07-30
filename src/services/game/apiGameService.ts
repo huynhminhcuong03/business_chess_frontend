@@ -1,4 +1,4 @@
-import { apiRequest } from '../apiClient';
+import { axiosClient } from '../axiosClient';
 import type {
     BuildPropertyRequest,
     BuyPropertyRequest,
@@ -15,140 +15,107 @@ import type {
 
 export const apiGameService = {
     getSnapshot(gameId: string): Promise<GameSnapshotDTO> {
-        return apiRequest<GameSnapshotDTO>(
-            `/games/${gameId}`,
+        return axiosClient.get<GameSnapshotDTO>(
+            `/api/games/${gameId}`,
         );
     },
 
     rollDice(
         request: RollDiceRequest,
     ): Promise<GameActionResponse> {
-        return apiRequest<GameActionResponse>(
-            `/games/${request.gameId}/roll-dice`,
-            {
-                method: 'POST',
-                body: request,
-            },
+        return axiosClient.post<GameActionResponse>(
+            `/api/games/${request.gameId}/roll-dice`,
+            request,
         );
     },
 
     buyProperty(
         request: BuyPropertyRequest,
     ): Promise<GameActionResponse> {
-        return apiRequest<GameActionResponse>(
-            `/games/${request.gameId}/properties/buy`,
-            {
-                method: 'POST',
-                body: request,
-            },
+        return axiosClient.post<GameActionResponse>(
+            `/api/games/${request.gameId}/properties/buy`,
+            request,
         );
     },
 
     skipProperty(
         request: GameActionRequest,
     ): Promise<GameActionResponse> {
-        return apiRequest<GameActionResponse>(
-            `/games/${request.gameId}/properties/skip-buy`,
-            {
-                method: 'POST',
-                body: request,
-            },
+        return axiosClient.post<GameActionResponse>(
+            `/api/games/${request.gameId}/properties/skip-buy`,
+            request,
         );
     },
 
     buildProperty(
         request: BuildPropertyRequest,
     ): Promise<GameActionResponse> {
-        return apiRequest<GameActionResponse>(
-            `/games/${request.gameId}/properties/build`,
-            {
-                method: 'POST',
-                body: request,
-            },
+        return axiosClient.post<GameActionResponse>(
+            `/api/games/${request.gameId}/properties/build`,
+            request,
         );
     },
 
     skipBuildProperty(
         request: GameActionRequest,
     ): Promise<GameActionResponse> {
-        return apiRequest<GameActionResponse>(
-            `/games/${request.gameId}/properties/skip-build`,
-            {
-                method: 'POST',
-                body: request,
-            },
+        return axiosClient.post<GameActionResponse>(
+            `/api/games/${request.gameId}/properties/skip-build`,
+            request,
         );
     },
 
     mortgageProperty(
         request: MortgagePropertyRequest,
     ): Promise<GameActionResponse> {
-        return apiRequest<GameActionResponse>(
-            `/games/${request.gameId}/properties/mortgage`,
-            {
-                method: 'POST',
-                body: request,
-            },
+        return axiosClient.post<GameActionResponse>(
+            `/api/games/${request.gameId}/properties/mortgage`,
+            request,
         );
     },
 
     redeemProperty(
         request: RedeemPropertyRequest,
     ): Promise<GameActionResponse> {
-        return apiRequest<GameActionResponse>(
-            `/games/${request.gameId}/properties/redeem`,
-            {
-                method: 'POST',
-                body: request,
-            },
+        return axiosClient.post<GameActionResponse>(
+            `/api/games/${request.gameId}/properties/redeem`,
+            request,
         );
     },
 
     drawCard(
         request: DrawCardRequest,
     ): Promise<DrawCardResponse> {
-        return apiRequest<DrawCardResponse>(
-            `/games/${request.gameId}/cards/draw`,
-            {
-                method: 'POST',
-                body: request,
-            },
+        return axiosClient.post<DrawCardResponse>(
+            `/api/games/${request.gameId}/cards/draw`,
+            request,
         );
     },
 
     executeCard(
         request: ExecuteCardRequest,
     ): Promise<GameActionResponse> {
-        return apiRequest<GameActionResponse>(
-            `/games/${request.gameId}/cards/execute`,
-            {
-                method: 'POST',
-                body: request,
-            },
+        return axiosClient.post<GameActionResponse>(
+            `/api/games/${request.gameId}/cards/execute`,
+            request,
         );
     },
 
     useJailFreeCard(
         request: GameActionRequest,
     ): Promise<GameActionResponse> {
-        return apiRequest<GameActionResponse>(
-            `/games/${request.gameId}/jail/use-free-card`,
-            {
-                method: 'POST',
-                body: request,
-            },
+        return axiosClient.post<GameActionResponse>(
+            `/api/games/${request.gameId}/jail/use-free-card`,
+            request,
         );
     },
 
     skipJailFreeCard(
         request: GameActionRequest,
     ): Promise<GameActionResponse> {
-        return apiRequest<GameActionResponse>(
-            `/games/${request.gameId}/jail/skip-free-card`,
-            {
-                method: 'POST',
-                body: request,
-            },
+        return axiosClient.post<GameActionResponse>(
+            `/api/games/${request.gameId}/jail/skip-free-card`,
+            request,
         );
     },
 };

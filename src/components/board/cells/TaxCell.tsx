@@ -1,4 +1,4 @@
-import type { BoardCell } from '../../../types/board';
+import type { BoardCell } from '../../../types/boardCell';
 import type { BoardCellDirection } from '../../../types/boardCell';
 import BaseBoardCell from './BaseBoardCell';
 

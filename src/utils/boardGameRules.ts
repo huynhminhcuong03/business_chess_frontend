@@ -90,7 +90,7 @@ export function canImproveProperty(
 ): boolean {
     if (
         cell.type !== 'PROPERTY' ||
-        !cell.propertyDetails ||
+        !cell.propertyDetail ||
         ownership.mortgaged ||
         ownership.hasHotel
     ) {
@@ -98,10 +98,10 @@ export function canImproveProperty(
     }
 
     if (ownership.houseCount < 4) {
-        return cell.propertyDetails.housePrice > 0;
+        return cell.propertyDetail.housePrice > 0;
     }
 
-    return cell.propertyDetails.hotelPrice > 0;
+    return cell.propertyDetail.hotelPrice > 0;
 }
 
 export function canMortgageProperty(
@@ -109,7 +109,7 @@ export function canMortgageProperty(
     ownership: PropertyOwnership,
 ): boolean {
     return (
-        cell.propertyDetails !== null &&
+        cell.propertyDetail !== null &&
         !ownership.mortgaged &&
         ownership.houseCount === 0 &&
         !ownership.hasHotel
@@ -119,12 +119,12 @@ export function canMortgageProperty(
 export function getMortgageRedeemCost(
     cell: BoardCell,
 ): number | null {
-    if (!cell.propertyDetails) {
+    if (!cell.propertyDetail) {
         return null;
     }
 
     return Math.ceil(
-        cell.propertyDetails.mortgagePrice * 1.1,
+        cell.propertyDetail.mortgagePrice * 1.1,
     );
 }
 
@@ -149,15 +149,15 @@ export function getPropertyImprovementCost(
     if (
         !cell ||
         !ownership ||
-        !cell.propertyDetails ||
+        !cell.propertyDetail ||
         !canImproveProperty(cell, ownership)
     ) {
         return null;
     }
 
     return ownership.houseCount < 4
-        ? cell.propertyDetails.housePrice
-        : cell.propertyDetails.hotelPrice;
+        ? cell.propertyDetail.housePrice
+        : cell.propertyDetail.hotelPrice;
 }
 
 export function getPropertyRentAfterImprovement(
@@ -167,31 +167,31 @@ export function getPropertyRentAfterImprovement(
     if (
         !cell ||
         !ownership ||
-        !cell.propertyDetails ||
+        !cell.propertyDetail ||
         !canImproveProperty(cell, ownership)
     ) {
         return null;
     }
 
     if (ownership.houseCount >= 4) {
-        return cell.propertyDetails.rentHotel;
+        return cell.propertyDetail.rentHotel;
     }
 
     switch (ownership.houseCount + 1) {
         case 1:
-            return cell.propertyDetails.rentLevel1;
+            return cell.propertyDetail.rentLevel1;
 
         case 2:
-            return cell.propertyDetails.rentLevel2;
+            return cell.propertyDetail.rentLevel2;
 
         case 3:
-            return cell.propertyDetails.rentLevel3;
+            return cell.propertyDetail.rentLevel3;
 
         case 4:
-            return cell.propertyDetails.rentLevel4;
+            return cell.propertyDetail.rentLevel4;
 
         default:
-            return cell.propertyDetails.rentLevel0;
+            return cell.propertyDetail.rentLevel0;
     }
 }
 
@@ -199,31 +199,31 @@ export function getPropertyRent(
     cell: BoardCell,
     ownership: PropertyOwnership,
 ): number {
-    const propertyDetails = cell.propertyDetails;
+    const propertyDetail = cell.propertyDetail;
 
-    if (!propertyDetails || ownership.mortgaged) {
+    if (!propertyDetail || ownership.mortgaged) {
         return 0;
     }
 
     if (ownership.hasHotel) {
-        return propertyDetails.rentHotel;
+        return propertyDetail.rentHotel;
     }
 
     switch (ownership.houseCount) {
         case 1:
-            return propertyDetails.rentLevel1;
+            return propertyDetail.rentLevel1;
 
         case 2:
-            return propertyDetails.rentLevel2;
+            return propertyDetail.rentLevel2;
 
         case 3:
-            return propertyDetails.rentLevel3;
+            return propertyDetail.rentLevel3;
 
         case 4:
-            return propertyDetails.rentLevel4;
+            return propertyDetail.rentLevel4;
 
         default:
-            return propertyDetails.rentLevel0;
+            return propertyDetail.rentLevel0;
     }
 }
 

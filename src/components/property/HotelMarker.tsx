@@ -12,7 +12,7 @@ function HotelMarker({ color }: HotelMarkerProps) {
     return (
         <svg
             aria-hidden="true"
-            className="h-6 w-9 drop-shadow-sm"
+            className="building-marker-hotel drop-shadow-sm"
             viewBox="0 0 32 24"
         >
             <path

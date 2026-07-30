@@ -1,10 +1,5 @@
-import { boardCells } from '../../data/boardCells';
-import {
-    chanceCards,
-    communityCards,
-    drawRandomCard,
-} from '../../data/card';
-import type { CardType, GameCard } from '../../types/card';
+import type { BoardCell } from '../../types/boardCell';
+import type { GameCard } from '../../types/card';
 import type { PropertyOwnership } from '../../types/game';
 import type { Player } from '../../types/player';
 import {
@@ -25,6 +20,7 @@ import {
 export interface CardExecutionState {
     players: Player[];
     propertyOwnerships: PropertyOwnership[];
+    boardCells: BoardCell[];
 }
 
 export interface CardExecutionResult {
@@ -32,21 +28,20 @@ export interface CardExecutionResult {
     excludedPlayerId?: number;
 }
 
-export function drawCard(cardType: CardType): GameCard {
-    return cardType === 'CHANCE'
-        ? drawRandomCard(chanceCards)
-        : drawRandomCard(communityCards);
-}
-
 export function getMoveBackTargetPosition(
     currentPosition: number,
     steps: number,
+    boardSize: number,
 ): number {
+    if (boardSize <= 0) {
+        return currentPosition;
+    }
+
     return (
         currentPosition -
         steps +
-        boardCells.length
-    ) % boardCells.length;
+        boardSize
+    ) % boardSize;
 }
 
 export function getNearestStationPosition(
@@ -101,7 +96,7 @@ export function executeCardAction(
     card: GameCard,
 ): CardExecutionResult {
     const playerId = currentPlayer.id;
-    const actionData = card.actionData;
+    const actionData = card.actionData ?? {};
     let nextPlayers = state.players;
     let excludedPlayerId: number | undefined;
 
@@ -206,6 +201,7 @@ export function executeCardAction(
                 getMoveBackTargetPosition(
                     currentPlayer.position,
                     actionData.steps ?? 0,
+                    state.boardCells.length,
                 );
 
             nextPlayers = movePlayerToPosition(
@@ -246,7 +242,7 @@ export function executeCardAction(
                 actionData.collectStartSalary ?? false,
             );
 
-            const stationCell = boardCells.find(
+            const stationCell = state.boardCells.find(
                 (cell) =>
                     cell.position === targetPosition,
             );
@@ -300,7 +296,7 @@ export function executeCardAction(
                 actionData.collectStartSalary ?? false,
             );
 
-            const utilityCell = boardCells.find(
+            const utilityCell = state.boardCells.find(
                 (cell) =>
                     cell.position === targetPosition,
             );
@@ -386,8 +382,7 @@ export function executeCardAction(
     };
 }
 
-export const cardAPI = {
-    draw: drawCard,
+export const cardActionService = {
     getMoveBackTargetPosition,
     getNearestStationPosition,
     getNearestUtilityPosition,

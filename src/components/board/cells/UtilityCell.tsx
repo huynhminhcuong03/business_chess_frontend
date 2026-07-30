@@ -1,4 +1,4 @@
-import type { BoardCell } from '../../../types/board';
+import type { BoardCell } from '../../../types/boardCell';
 import type { BoardCellDirection } from '../../../types/boardCell';
 import { formatPlayerMoney } from '../../../utils/formatMoney';
 import BaseBoardCell from './BaseBoardCell';
@@ -12,7 +12,7 @@ function UtilityCell({
     cell,
     direction,
 }: UtilityCellProps) {
-    const buyPrice = cell.propertyDetails?.buyPrice;
+    const buyPrice = cell.propertyDetail?.buyPrice;
     const isSideCell =
         direction === 'left' || direction === 'right';
 

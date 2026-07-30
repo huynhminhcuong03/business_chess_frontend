@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { INCOME_TAX_AMOUNT, LUXURY_TAX_AMOUNT, START_REWARD } from '../constants/gameRules';
-import { boardCells } from '../data/boardCells';
 import { players as initialPlayers } from '../data/players';
-import type { BoardCell } from '../types/board';
+import type { BoardCell } from '../types/boardCell';
 import type {
     LastMoveResult,
     PropertyOwnership,
@@ -26,7 +25,11 @@ import useGameActionStatus from './useGameActionStatus';
 
 const LOCAL_GAME_ID = 'local-game';
 
-function useBoardGame() {
+interface MoveCurrentPlayerOptions {
+    animate?: boolean;
+}
+
+function useBoardGame(boardCells: BoardCell[]) {
     const gameId = LOCAL_GAME_ID;
     const {
         isSubmittingAction,
@@ -65,7 +68,7 @@ function useBoardGame() {
         : null;
 
     const landedPropertyPrice =
-        landedCell?.propertyDetails?.buyPrice ?? null;
+        landedCell?.propertyDetail?.buyPrice ?? null;
     const landedPropertyOwnership = landedCell
         ? propertyOwnerships.find(
             (ownership) =>
@@ -210,6 +213,7 @@ function useBoardGame() {
         isWaitingForAction,
         lastMoveResult,
         propertyOwnerships,
+        boardCells,
         setPlayers,
         moveToNextPlayer,
         finishWaitingAction,
@@ -437,11 +441,13 @@ function useBoardGame() {
 
     async function moveCurrentPlayer(
         stepCount: number,
+        options: MoveCurrentPlayerOptions = {},
     ): Promise<void> {
         if (
             isPlayerMoving ||
             isWaitingForAction ||
-            stepCount <= 0
+            stepCount <= 0 ||
+            boardCells.length === 0
         ) {
             return;
         }
@@ -456,6 +462,7 @@ function useBoardGame() {
         const movingPlayerId = movingPlayer.id;
         const movingPlayerName = movingPlayer.name;
         const startPosition = movingPlayer.position;
+        const shouldAnimate = options.animate ?? true;
 
         setIsPlayerMoving(true);
         setLastMoveResult(null);
@@ -478,6 +485,20 @@ function useBoardGame() {
 
             currentPosition = nextPosition;
 
+            if (shouldAnimate) {
+                setPlayers((currentPlayers) =>
+                    gameAPI.movePlayerOneStep(
+                        currentPlayers,
+                        movingPlayerId,
+                        currentPosition,
+                    ),
+                );
+
+                await wait(PLAYER_STEP_DELAY);
+            }
+        }
+
+        if (!shouldAnimate) {
             setPlayers((currentPlayers) =>
                 gameAPI.movePlayerOneStep(
                     currentPlayers,
@@ -485,8 +506,6 @@ function useBoardGame() {
                     currentPosition,
                 ),
             );
-
-            await wait(PLAYER_STEP_DELAY);
         }
 
         if (passedStart) {
@@ -709,6 +728,13 @@ function useBoardGame() {
         moveCurrentPlayer: (stepCount: number) => {
             void runGameAction(() =>
                 moveCurrentPlayer(stepCount),
+            );
+        },
+        debugMoveCurrentPlayer: (stepCount: number) => {
+            void runGameAction(() =>
+                moveCurrentPlayer(stepCount, {
+                    animate: false,
+                }),
             );
         },
         handleRollDice: (diceValue: number) => {

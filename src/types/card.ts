@@ -14,6 +14,7 @@ export type CardActionType =
     | 'GET_OUT_OF_JAIL';
 
 export interface CardActionData {
+    [key: string]: unknown;
     amount?: number;
     amountPerPlayer?: number;
     steps?: number;
@@ -28,9 +29,12 @@ export interface CardActionData {
 
 export interface GameCard {
     id: number;
+    boardId: number;
     type: CardType;
     title: string;
     description: string;
     actionType: CardActionType;
-    actionData: CardActionData;
+    actionData: CardActionData | null;
+    amount: number | null;
+    targetPosition: number | null;
 }

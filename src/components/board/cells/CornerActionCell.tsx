@@ -1,7 +1,7 @@
 import freeParkingImage from '../../../assets/images/board_img/free_parking.png';
 import goJailImage from '../../../assets/images/board_img/go_jail.png';
 import jailImage from '../../../assets/images/board_img/jail.png';
-import type { BoardCell } from '../../../types/board';
+import type { BoardCell } from '../../../types/boardCell';
 import type { BoardCellDirection } from '../../../types/boardCell';
 import BaseBoardCell from './BaseBoardCell';
 

@@ -14,6 +14,11 @@ interface PropertyOwnershipLayerProps {
     boardCells: BoardCell[];
 }
 
+const BUILDING_EDGE_OFFSET =
+    'clamp(1px, calc(var(--board-size) * 0.004), 4px)';
+const HOTEL_SIDE_OFFSET =
+    'clamp(-6px, calc(var(--board-size) * -0.006), -2px)';
+
 function getOwnershipMarkerStyle(
     row: number,
     column: number,
@@ -44,7 +49,7 @@ function getOwnershipMarkerStyle(
         column < 11
     ) {
         return {
-            bottom: '4px',
+            bottom: BUILDING_EDGE_OFFSET,
             left: '50%',
             transform: 'translateX(-50%)',
         };
@@ -134,7 +139,7 @@ function getBuildingMarkerStyle(
         column < 11
     ) {
         return {
-            top: '4px',
+            top: BUILDING_EDGE_OFFSET,
             left: '50%',
             transform: 'translateX(-50%)',
         };
@@ -146,7 +151,7 @@ function getBuildingMarkerStyle(
         row < 11
     ) {
         return {
-            right: '4px',
+            right: BUILDING_EDGE_OFFSET,
             top: '50%',
             transform: 'translateY(-50%)',
         };
@@ -158,7 +163,7 @@ function getBuildingMarkerStyle(
         row < 11
     ) {
         return {
-            left: '4px',
+            left: BUILDING_EDGE_OFFSET,
             top: '50%',
             transform: 'translateY(-50%)',
         };
@@ -205,7 +210,7 @@ function getHotelMarkerStyle(
         row < 11
     ) {
         return {
-            right: '-6px',
+            right: HOTEL_SIDE_OFFSET,
             top: '50%',
             transform: 'translateY(-50%)',
         };
@@ -217,7 +222,7 @@ function getHotelMarkerStyle(
         row < 11
     ) {
         return {
-            left: '-6px',
+            left: HOTEL_SIDE_OFFSET,
             top: '50%',
             transform: 'translateY(-50%)',
         };
@@ -375,7 +380,7 @@ function PropertyOwnershipLayer({
 
                             {shouldShowBuildings && (
                                 <div
-                                    className={`absolute flex items-center justify-center gap-0.5 ${buildingDirection}`}
+                                    className={`building-marker-group absolute flex items-center justify-center ${buildingDirection}`}
                                     style={
                                         ownership.hasHotel
                                             ? hotelPosition

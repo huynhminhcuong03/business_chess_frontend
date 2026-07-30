@@ -3,7 +3,7 @@ import {
     CELL_BACKGROUND_CLASSES,
     CONTENT_DIRECTION_CLASSES,
 } from '../../../constants/boardStyles';
-import type { BoardCell } from '../../../types/board';
+import type { BoardCell } from '../../../types/boardCell';
 import type { BoardCellDirection } from '../../../types/boardCell';
 
 interface BaseBoardCellProps {

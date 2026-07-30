@@ -1,5 +1,5 @@
 import { START_REWARD } from '../../constants/gameRules';
-import type { BoardCell } from '../../types/board';
+import type { BoardCell } from '../../types/boardCell';
 import type { PropertyOwnership } from '../../types/game';
 import type {
     GameStateSlice,
@@ -117,9 +117,9 @@ export function buyProperty(
     propertyCell: BoardCell,
 ): GameStateSlice {
     if (
-        !propertyCell.propertyDetails ||
+        !propertyCell.propertyDetail ||
         player.money <
-            propertyCell.propertyDetails.buyPrice ||
+            propertyCell.propertyDetail.buyPrice ||
         state.propertyOwnerships.some(
             (ownership) =>
                 ownership.boardCellId === propertyCell.id,
@@ -132,7 +132,7 @@ export function buyProperty(
         players: changePlayerMoney(
             state.players,
             player.id,
-            -propertyCell.propertyDetails.buyPrice,
+            -propertyCell.propertyDetail.buyPrice,
         ),
         propertyOwnerships: [
             ...state.propertyOwnerships,
@@ -201,7 +201,7 @@ export function mortgageProperty(
 ): GameStateSlice {
     if (
         player.isBankrupt ||
-        !propertyCell.propertyDetails ||
+        !propertyCell.propertyDetail ||
         !canMortgageProperty(propertyCell, ownership)
     ) {
         return state;
@@ -211,7 +211,7 @@ export function mortgageProperty(
         players: changePlayerMoney(
             state.players,
             player.id,
-            propertyCell.propertyDetails.mortgagePrice,
+            propertyCell.propertyDetail.mortgagePrice,
         ),
         propertyOwnerships: state.propertyOwnerships.map(
             (currentOwnership) =>

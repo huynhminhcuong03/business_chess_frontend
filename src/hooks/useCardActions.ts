@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { cardAPI } from '../services/game';
+import { cardAPI } from '../services/cardAPI';
+import { cardActionService } from '../services/game';
+import type { BoardCell } from '../types/boardCell';
 import type { CardType, GameCard } from '../types/card';
 import type {
     LastMoveResult,
@@ -13,6 +15,7 @@ interface UseCardActionsParams {
     isWaitingForAction: boolean;
     lastMoveResult: LastMoveResult | null;
     propertyOwnerships: PropertyOwnership[];
+    boardCells: BoardCell[];
     setPlayers: (players: Player[]) => void;
     moveToNextPlayer: (excludedPlayerId?: number) => void;
     finishWaitingAction: () => void;
@@ -20,8 +23,8 @@ interface UseCardActionsParams {
 
 interface UseCardActionsResult {
     drawnCard: GameCard | null;
-    handleDrawChanceCard: () => void;
-    handleDrawCommunityCard: () => void;
+    handleDrawChanceCard: () => Promise<void>;
+    handleDrawCommunityCard: () => Promise<void>;
     handleExecuteCard: () => void;
 }
 
@@ -31,6 +34,7 @@ function useCardActions({
     isWaitingForAction,
     lastMoveResult,
     propertyOwnerships,
+    boardCells,
     setPlayers,
     moveToNextPlayer,
     finishWaitingAction,
@@ -38,9 +42,9 @@ function useCardActions({
     const [drawnCard, setDrawnCard] =
         useState<GameCard | null>(null);
 
-    function handleDrawCard(
+    async function handleDrawCard(
         cardType: CardType,
-    ): void {
+    ): Promise<void> {
         if (
             !isWaitingForAction ||
             drawnCard !== null
@@ -64,17 +68,16 @@ function useCardActions({
             return;
         }
 
-        setDrawnCard(
-            cardAPI.draw(cardType),
-        );
+        const card = await cardAPI.draw(cardType);
+        setDrawnCard(card);
     }
 
-    function handleDrawChanceCard(): void {
-        handleDrawCard('CHANCE');
+    function handleDrawChanceCard(): Promise<void> {
+        return handleDrawCard('CHANCE');
     }
 
-    function handleDrawCommunityCard(): void {
-        handleDrawCard('COMMUNITY');
+    function handleDrawCommunityCard(): Promise<void> {
+        return handleDrawCard('COMMUNITY');
     }
 
     function handleExecuteCard(): void {
@@ -86,10 +89,11 @@ function useCardActions({
             return;
         }
 
-        const result = cardAPI.execute(
+        const result = cardActionService.execute(
             {
                 players,
                 propertyOwnerships,
+                boardCells,
             },
             currentPlayer,
             drawnCard,

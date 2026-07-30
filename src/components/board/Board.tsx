@@ -1,5 +1,9 @@
-import { boardCells } from '../../data/boardCells';
+import { useEffect, useState } from 'react';
 import useBoardGame from '../../hooks/useBoardGame';
+import { ApiRequestError } from '../../services/axiosClient';
+import { boardAPI } from '../../services/boardAPI';
+import type { ApiResponse } from '../../types/api';
+import type { BoardCell as BoardCellData } from '../../types/boardCell';
 import DebugMovePanel from '../game/DebugMovePanel';
 import PlayerLayer from '../player/PlayerLayer';
 import PlayerMoneyLayer from '../player/PlayerMoneyLayer';
@@ -8,7 +12,39 @@ import BoardCenter from './BoardCenter';
 import BoardGrid from './BoardGrid';
 import GameStatusPanel from './GameStatusPanel';
 
+function sortBoardCells(cells: BoardCellData[]): BoardCellData[] {
+    return [...cells].sort(
+        (firstCell, secondCell) =>
+            firstCell.position - secondCell.position,
+    );
+}
+
+function getBoardErrorMessage(error: unknown): string {
+    if (error instanceof ApiRequestError) {
+        const responseBody =
+            error.responseBody as Partial<
+                ApiResponse<unknown>
+            > | null;
+
+        return (
+            responseBody?.message ??
+            (error.status === 404
+                ? 'Board not found'
+                : 'Khong the tai du lieu ban co.')
+        );
+    }
+
+    return 'Khong the tai du lieu ban co.';
+}
+
 function Board() {
+    const [boardCells, setBoardCells] =
+        useState<BoardCellData[]>([]);
+    const [isLoadingBoard, setIsLoadingBoard] =
+        useState(true);
+    const [boardError, setBoardError] =
+        useState<string | null>(null);
+
     const {
         players,
         currentPlayer,
@@ -23,7 +59,7 @@ function Board() {
         landedRentAfterImprovement,
         canAffordProperty,
         canAffordPropertyImprovement,
-        moveCurrentPlayer,
+        debugMoveCurrentPlayer,
         handleRollDice,
         handleBuyProperty,
         handleSkipProperty,
@@ -36,11 +72,33 @@ function Board() {
         handleDrawChanceCard,
         handleDrawCommunityCard,
         handleExecuteCard,
-    } = useBoardGame();
+    } = useBoardGame(boardCells);
+
+    useEffect(() => {
+        async function fetchBoardCells(): Promise<void> {
+            setIsLoadingBoard(true);
+            setBoardError(null);
+
+            try {
+                const cells =
+                    await boardAPI.getBoardCells();
+                setBoardCells(sortBoardCells(cells));
+            } catch (error) {
+                setBoardCells([]);
+                setBoardError(getBoardErrorMessage(error));
+            } finally {
+                setIsLoadingBoard(false);
+            }
+        }
+
+        void fetchBoardCells();
+    }, []);
 
     if (!currentPlayer) {
         return null;
     }
+
+    const hasBoardCells = boardCells.length > 0;
 
     return (
         <div className="board-shell relative flex items-center justify-center">
@@ -105,14 +163,35 @@ function Board() {
 
                     {import.meta.env.DEV && (
                         <DebugMovePanel
-                            onMove={moveCurrentPlayer}
+                            onMove={debugMoveCurrentPlayer}
                             disabled={
                                 isPlayerMoving ||
-                                isWaitingForAction
+                                isWaitingForAction ||
+                                !hasBoardCells
                             }
                         />
                     )}
                 </BoardGrid>
+
+                {isLoadingBoard && (
+                    <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/90 text-sm font-bold text-slate-700">
+                        Dang tai ban co...
+                    </div>
+                )}
+
+                {!isLoadingBoard && boardError && (
+                    <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/90 px-6 text-center text-sm font-bold text-red-600">
+                        {boardError}
+                    </div>
+                )}
+
+                {!isLoadingBoard &&
+                    !boardError &&
+                    !hasBoardCells && (
+                    <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/90 text-sm font-bold text-slate-700">
+                        Khong co du lieu o ban co.
+                    </div>
+                )}
 
                 <PropertyOwnershipLayer
                     propertyOwnerships={

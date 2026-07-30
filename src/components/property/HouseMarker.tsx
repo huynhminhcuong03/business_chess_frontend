@@ -12,7 +12,7 @@ function HouseMarker({ color }: HouseMarkerProps) {
     return (
         <svg
             aria-hidden="true"
-            className="h-4 w-5 drop-shadow-sm"
+            className="building-marker-house drop-shadow-sm"
             viewBox="0 0 24 24"
         >
             <path

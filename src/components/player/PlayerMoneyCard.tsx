@@ -273,9 +273,9 @@ function PropertyDeedCard({
     isExpanded,
     onToggle,
 }: PropertyDeedCardProps) {
-    const propertyDetails = property.propertyDetails;
+    const propertyDetail = property.propertyDetail;
     const deedNumber = String(
-        propertyDetails?.id ?? property.id,
+        propertyDetail?.id ?? property.id,
     ).padStart(2, '0');
     const colorClass = getPropertyColorClass(property);
     const buildingSummary =
@@ -338,19 +338,19 @@ function PropertyDeedCard({
             </button>
 
             <div className="px-3 py-2 text-[11px] leading-tight">
-                {propertyDetails ? (
+                {propertyDetail ? (
                     <>
                         <div className="space-y-1">
                             <DeedRow
                                 label="Giá mua"
                                 value={`$${formatPlayerMoney(
-                                    propertyDetails.buyPrice,
+                                    propertyDetail.buyPrice,
                                 )}`}
                             />
                             <DeedRow
                                 label="Tiền thuê đất"
                                 value={`$${formatPlayerMoney(
-                                    propertyDetails.rentLevel0,
+                                    propertyDetail.rentLevel0,
                                 )}`}
                             />
                             {property.type ===
@@ -359,31 +359,31 @@ function PropertyDeedCard({
                                     <DeedRow
                                         label="Với 1 nhà"
                                         value={`$${formatPlayerMoney(
-                                            propertyDetails.rentLevel1,
+                                            propertyDetail.rentLevel1,
                                         )}`}
                                     />
                                     <DeedRow
                                         label="Với 2 nhà"
                                         value={`$${formatPlayerMoney(
-                                            propertyDetails.rentLevel2,
+                                            propertyDetail.rentLevel2,
                                         )}`}
                                     />
                                     <DeedRow
                                         label="Với 3 nhà"
                                         value={`$${formatPlayerMoney(
-                                            propertyDetails.rentLevel3,
+                                            propertyDetail.rentLevel3,
                                         )}`}
                                     />
                                     <DeedRow
                                         label="Với 4 nhà"
                                         value={`$${formatPlayerMoney(
-                                            propertyDetails.rentLevel4,
+                                            propertyDetail.rentLevel4,
                                         )}`}
                                     />
                                     <DeedRow
                                         label="Với khách sạn"
                                         value={`$${formatPlayerMoney(
-                                            propertyDetails.rentHotel,
+                                            propertyDetail.rentHotel,
                                         )}`}
                                     />
                                 </>
@@ -394,7 +394,7 @@ function PropertyDeedCard({
                             <DeedRow
                                 label="Giá thế chấp"
                                 value={`$${formatPlayerMoney(
-                                    propertyDetails.mortgagePrice,
+                                    propertyDetail.mortgagePrice,
                                 )}`}
                             />
                             {property.type ===
@@ -403,13 +403,13 @@ function PropertyDeedCard({
                                     <DeedRow
                                         label="Xây nhà"
                                         value={`$${formatPlayerMoney(
-                                            propertyDetails.housePrice,
+                                            propertyDetail.housePrice,
                                         )}`}
                                     />
                                     <DeedRow
                                         label="Xây khách sạn"
                                         value={`$${formatPlayerMoney(
-                                            propertyDetails.hotelPrice,
+                                            propertyDetail.hotelPrice,
                                         )}`}
                                     />
                                 </>
