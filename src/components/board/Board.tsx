@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import { ApiRequestError } from '../../services/axiosClient';
 import { boardAPI } from '../../services/boardAPI';
 import { cardAPI } from '../../services/cardAPI';
+import ToastViewport from '../feedback/ToastViewport';
+import { useStepPlayerMovement } from '../../hooks/useStepPlayerMovement';
+import { useToastNotifications } from '../../hooks/useToastNotifications';
 import type { ApiResponse } from '../../types/api';
 import type { BoardResponse } from '../../types/board';
 import type { BoardCell as BoardCellData } from '../../types/boardCell';
@@ -10,10 +13,21 @@ import type {
     CellAction,
     LastMoveResult,
 } from '../../types/game';
+import DebugMovePanel from '../game/DebugMovePanel';
 import BoardCenter from './BoardCenter';
 import BoardGrid from './BoardGrid';
+import PlayerLayer from '../player/PlayerLayer';
+import PlayerMoneyLayer from '../player/PlayerMoneyLayer';
+import type {
+    GamePlayerResponse,
+    GameResponse,
+} from '../../types/gameApi';
 
-const CURRENT_PLAYER_NAME = 'Người chơi 1';
+const FALLBACK_PLAYER_NAME = 'Người chơi';
+
+interface BoardProps {
+    game: GameResponse;
+}
 
 function sortBoardCells(cells: BoardCellData[]): BoardCellData[] {
     return [...cells].sort(
@@ -50,13 +64,31 @@ function getCellAction(cell: BoardCellData): CellAction {
     return 'NONE';
 }
 
-function Board() {
+function getCurrentGamePlayer(
+    players: GamePlayerResponse[],
+    currentPlayerId: number | null,
+): GamePlayerResponse | null {
+    if (players.length === 0) {
+        return null;
+    }
+
+    return (
+        players.find(
+            (player) =>
+                player.id === currentPlayerId ||
+                player.player.id === currentPlayerId,
+        ) ?? players[0]
+    );
+}
+
+function Board({ game }: BoardProps) {
     const [, setBoard] =
         useState<BoardResponse | null>(null);
     const [boardCells, setBoardCells] =
         useState<BoardCellData[]>([]);
-    const [currentPosition, setCurrentPosition] =
-        useState(0);
+    const [gamePlayers, setGamePlayers] = useState<
+        GamePlayerResponse[]
+    >(game.players ?? []);
     const [lastMoveResult, setLastMoveResult] =
         useState<LastMoveResult | null>(null);
     const [drawnCard, setDrawnCard] =
@@ -67,6 +99,16 @@ function Board() {
         useState(false);
     const [errorMessage, setErrorMessage] =
         useState<string | null>(null);
+    const { isPlayerMoving, movePlayer } =
+        useStepPlayerMovement({
+            boardCellCount: boardCells.length,
+            setGamePlayers,
+        });
+    const {
+        notifications,
+        showToast,
+        dismissToast,
+    } = useToastNotifications();
 
     useEffect(() => {
         async function fetchBoardData(): Promise<void> {
@@ -83,29 +125,69 @@ function Board() {
                 setBoard(boardResponse);
                 setBoardCells(sortBoardCells(cellsResponse));
             } catch (error) {
+                const message = getApiErrorMessage(
+                    error,
+                    'Khong the tai du lieu ban co.',
+                );
+
                 setBoard(null);
                 setBoardCells([]);
-                setErrorMessage(
-                    getApiErrorMessage(
-                        error,
-                        'Khong the tai du lieu ban co.',
-                    ),
-                );
+                setErrorMessage(message);
+                showToast(message, 'error');
             } finally {
                 setIsLoadingBoard(false);
             }
         }
 
         void fetchBoardData();
-    }, []);
+    }, [showToast]);
+
+    const currentGamePlayer = getCurrentGamePlayer(
+        gamePlayers,
+        game.currentPlayerId,
+    );
+    const currentPlayerName =
+        currentGamePlayer?.player.displayName ??
+        FALLBACK_PLAYER_NAME;
+    const currentPosition =
+        currentGamePlayer?.position ?? 0;
+    const currentGamePlayerId =
+        currentGamePlayer?.id ?? null;
 
     function handleRollDice(totalValue: number): void {
-        if (boardCells.length === 0) {
+        if (
+            boardCells.length === 0 ||
+            !currentGamePlayer ||
+            isPlayerMoving
+        ) {
+            return;
+        }
+
+        void handleMoveAfterRoll(totalValue);
+    }
+
+    function handleDebugMove(stepCount: number): void {
+        if (
+            boardCells.length === 0 ||
+            !currentGamePlayer ||
+            isPlayerMoving ||
+            isWaitingForAction
+        ) {
+            return;
+        }
+
+        moveCurrentPlayerImmediately(stepCount);
+    }
+
+    function moveCurrentPlayerImmediately(
+        stepCount: number,
+    ): void {
+        if (!currentGamePlayer) {
             return;
         }
 
         const nextPosition =
-            (currentPosition + totalValue) %
+            (currentPosition + stepCount) %
             boardCells.length;
         const landedCell = boardCells[nextPosition];
 
@@ -115,10 +197,54 @@ function Board() {
 
         const action = getCellAction(landedCell);
 
-        setCurrentPosition(nextPosition);
+        setGamePlayers((previousPlayers) =>
+            previousPlayers.map((player) =>
+                player.id === currentGamePlayer.id
+                    ? {
+                          ...player,
+                          position: nextPosition,
+                      }
+                    : player,
+            ),
+        );
         setDrawnCard(null);
         setLastMoveResult({
-            playerName: CURRENT_PLAYER_NAME,
+            playerName: currentPlayerName,
+            cellId: landedCell.id,
+            cellPosition: landedCell.position,
+            cellName: landedCell.name,
+            cellType: landedCell.type,
+            action,
+        });
+        setIsWaitingForAction(action !== 'NONE');
+    }
+
+    async function handleMoveAfterRoll(
+        totalValue: number,
+    ): Promise<void> {
+        if (!currentGamePlayer) {
+            return;
+        }
+
+        setIsWaitingForAction(false);
+        setDrawnCard(null);
+        setLastMoveResult(null);
+
+        const nextPosition = await movePlayer({
+            playerId: currentGamePlayer.id,
+            startPosition: currentPosition,
+            stepCount: totalValue,
+        });
+        const landedCell = boardCells[nextPosition];
+
+        if (!landedCell) {
+            return;
+        }
+
+        const action = getCellAction(landedCell);
+
+        setLastMoveResult({
+            playerName: currentPlayerName,
             cellId: landedCell.id,
             cellPosition: landedCell.position,
             cellName: landedCell.name,
@@ -132,18 +258,21 @@ function Board() {
         setErrorMessage(null);
 
         try {
-            const card = await cardAPI.drawChanceCard();
+            const card = await cardAPI.drawChanceCardForGame(
+                game.id,
+                currentGamePlayerId,
+            );
             setDrawnCard({
                 ...card,
                 type: 'CHANCE',
             });
         } catch (error) {
-            setErrorMessage(
-                getApiErrorMessage(
-                    error,
-                    'Khong the rut the Co hoi.',
-                ),
+            const message = getApiErrorMessage(
+                error,
+                'Khong the rut the Co hoi.',
             );
+            setErrorMessage(message);
+            showToast(message, 'error');
             setIsWaitingForAction(false);
         }
     }
@@ -152,18 +281,22 @@ function Board() {
         setErrorMessage(null);
 
         try {
-            const card = await cardAPI.drawCommunityCard();
+            const card =
+                await cardAPI.drawCommunityCardForGame(
+                    game.id,
+                    currentGamePlayerId,
+                );
             setDrawnCard({
                 ...card,
                 type: 'COMMUNITY',
             });
         } catch (error) {
-            setErrorMessage(
-                getApiErrorMessage(
-                    error,
-                    'Khong the rut the Khi van.',
-                ),
+            const message = getApiErrorMessage(
+                error,
+                'Khong the rut the Khi van.',
             );
+            setErrorMessage(message);
+            showToast(message, 'error');
             setIsWaitingForAction(false);
         }
     }
@@ -185,6 +318,15 @@ function Board() {
 
     return (
         <div className="board-shell relative flex items-center justify-center">
+            <ToastViewport
+                notifications={notifications}
+                onDismiss={dismissToast}
+            />
+            <PlayerMoneyLayer
+                players={gamePlayers}
+                currentGamePlayerId={currentGamePlayerId}
+            />
+
             <div className="board-frame relative aspect-square">
                 <BoardGrid boardCells={boardCells}>
                     <BoardCenter
@@ -208,15 +350,20 @@ function Board() {
                         onSkipJailFreeCard={
                             clearPendingAction
                         }
-                        isPlayerMoving={false}
+                        isPlayerMoving={isPlayerMoving}
                         isWaitingForAction={
                             isWaitingForAction
                         }
                         currentPlayerName={
-                            CURRENT_PLAYER_NAME
+                            currentPlayerName
                         }
-                        currentPlayerInJail={false}
-                        currentPlayerJailFreeCardCount={0}
+                        currentPlayerInJail={
+                            currentGamePlayer?.inJail ?? false
+                        }
+                        currentPlayerJailFreeCardCount={
+                            currentGamePlayer?.jailFreeCard ??
+                            0
+                        }
                         landedProperty={landedCell}
                         landedPropertyOwnership={null}
                         landedImprovementPrice={null}
@@ -226,7 +373,22 @@ function Board() {
                         lastMoveResult={lastMoveResult}
                         drawnCard={drawnCard}
                     />
+
+                    {import.meta.env.DEV && (
+                        <DebugMovePanel
+                            onMove={handleDebugMove}
+                            disabled={
+                                isPlayerMoving ||
+                                isWaitingForAction ||
+                                !hasBoardCells
+                            }
+                        />
+                    )}
                 </BoardGrid>
+
+                <PlayerLayer
+                    players={gamePlayers}
+                />
 
                 {isLoadingBoard && (
                     <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/90 text-sm font-bold text-slate-700">

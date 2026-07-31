@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import ToastViewport from '../components/feedback/ToastViewport';
+import { useToastNotifications } from '../hooks/useToastNotifications';
 import { ApiRequestError } from '../services/axiosClient';
 import { gameAPI } from '../services/gameAPI';
 import type { ApiResponse } from '../types/api';
@@ -95,6 +97,11 @@ function GameSetupPage({
         useState(false);
     const [errorMessage, setErrorMessage] =
         useState<string | null>(null);
+    const {
+        notifications,
+        showToast,
+        dismissToast,
+    } = useToastNotifications();
 
     const usedTokenColors = useMemo(
         () =>
@@ -121,13 +128,14 @@ function GameSetupPage({
 
             setCreatedGame(game);
             setPlayers(game.players ?? []);
+            showToast('Tạo game thành công.', 'success');
         } catch (error) {
-            setErrorMessage(
-                getApiErrorMessage(
-                    error,
-                    'Không thể tạo game mới.',
-                ),
+            const message = getApiErrorMessage(
+                error,
+                'Không thể tạo game mới.',
             );
+            setErrorMessage(message);
+            showToast(message, 'error');
         } finally {
             setIsCreatingGame(false);
         }
@@ -163,17 +171,18 @@ function GameSetupPage({
             setPlayers(nextPlayers);
             setDisplayName('');
             setUsername('');
+            showToast('Đã thêm người chơi.', 'success');
 
             if (nextColor) {
                 setTokenColor(nextColor.value);
             }
         } catch (error) {
-            setErrorMessage(
-                getApiErrorMessage(
-                    error,
-                    'Không thể thêm người chơi.',
-                ),
+            const message = getApiErrorMessage(
+                error,
+                'Không thể thêm người chơi.',
             );
+            setErrorMessage(message);
+            showToast(message, 'error');
         } finally {
             setIsAddingPlayer(false);
         }
@@ -191,12 +200,12 @@ function GameSetupPage({
             const game = await gameAPI.startGame(createdGame.id);
             onEnterGame(game);
         } catch (error) {
-            setErrorMessage(
-                getApiErrorMessage(
-                    error,
-                    'Không thể bắt đầu game.',
-                ),
+            const message = getApiErrorMessage(
+                error,
+                'Không thể bắt đầu game.',
             );
+            setErrorMessage(message);
+            showToast(message, 'error');
         } finally {
             setIsStartingGame(false);
         }
@@ -205,6 +214,10 @@ function GameSetupPage({
     if (!createdGame) {
         return (
             <main className="min-h-dvh overflow-y-auto bg-zinc-100 text-slate-950">
+                <ToastViewport
+                    notifications={notifications}
+                    onDismiss={dismissToast}
+                />
                 <div className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
                     <header className="border-b border-slate-200 pb-5">
                         <p className="text-sm font-semibold uppercase tracking-[0.14em] text-emerald-700">
@@ -275,6 +288,10 @@ function GameSetupPage({
 
     return (
         <main className="min-h-dvh overflow-y-auto bg-zinc-100 text-slate-950">
+            <ToastViewport
+                notifications={notifications}
+                onDismiss={dismissToast}
+            />
             <div className="mx-auto flex min-h-dvh w-full max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
                 <header className="flex flex-col gap-2 border-b border-slate-200 pb-5 sm:flex-row sm:items-end sm:justify-between">
                     <div>

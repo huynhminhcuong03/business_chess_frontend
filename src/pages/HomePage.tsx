@@ -13,7 +13,7 @@ function HomePage() {
 
     return (
         <main className="game-screen flex items-center justify-center bg-slate-100">
-            <Board />
+            <Board game={activeGame} />
         </main>
     );
 }
