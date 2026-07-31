@@ -108,7 +108,7 @@ function BoardCenter({
                 className="pointer-events-none absolute inset-0 h-full w-full object-contain select-none"
             />
 
-            <div className="absolute inset-0 -rotate-45">
+            <div className="board-center-controls absolute inset-0 -rotate-45">
                 <div className="absolute inset-0 flex items-center justify-center">
                     <div className="board-center-card-decks flex items-center">
                         <CardDeckButton
@@ -136,7 +136,7 @@ function BoardCenter({
                 </div>
 
                 {shouldShowDice && (
-                    <div className="absolute left-1/2 top-[50%] z-20 -translate-x-1/2 -translate-y-1/2">
+                    <div className="dice-panel-anchor absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2">
                         <DicePanel
                             key={currentPlayerName}
                             onRoll={onRoll}

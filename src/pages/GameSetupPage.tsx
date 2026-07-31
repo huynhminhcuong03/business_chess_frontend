@@ -21,11 +21,11 @@ const GAME_MODES: Array<{
         title: 'Ván thường',
         description: 'Luật đầy đủ, phù hợp cho một ván dài.',
     },
-    {
-        value: 'QUICK',
-        title: 'Ván nhanh',
-        description: 'Nhịp nhanh hơn, hợp để chơi 60-90 phút.',
-    },
+    // {
+    //     value: 'QUICK',
+    //     title: 'Ván nhanh',
+    //     description: 'Nhịp nhanh hơn, hợp để chơi 60-90 phút.',
+    // },
 ];
 
 const TOKEN_COLORS: Array<{
@@ -171,7 +171,6 @@ function GameSetupPage({
             setPlayers(nextPlayers);
             setDisplayName('');
             setUsername('');
-            showToast('Đã thêm người chơi.', 'success');
 
             if (nextColor) {
                 setTokenColor(nextColor.value);
@@ -232,7 +231,8 @@ function GameSetupPage({
                         <h2 className="text-xl font-black text-slate-950">
                             Chế độ chơi
                         </h2>
-                        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                        {/* sm:grid-cols-2 đưa nó xuống dưới tạo 2 loại game*/}
+                        <div className="mt-4 grid gap-3">
                             {GAME_MODES.map((mode) => {
                                 const isSelected =
                                     selectedMode ===

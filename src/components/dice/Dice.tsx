@@ -41,13 +41,13 @@ function Dice({ value }: DiceProps) {
 
     return (
         <div
-            className="grid h-16 w-16 grid-cols-3 grid-rows-3 rounded-xl border-2 border-slate-800 bg-white p-2 shadow-md"
+            className="dice-face grid grid-cols-3 grid-rows-3 rounded-xl border-2 border-slate-800 bg-white shadow-md"
             aria-label={`Xúc xắc ra ${value} điểm`}
         >
             {dotPositions.map((position, index) => (
                 <span
                     key={`${position}-${index}`}
-                    className={`h-3 w-3 place-self-center rounded-full bg-slate-800 ${position}`}
+                    className={`dice-dot place-self-center rounded-full bg-slate-800 ${position}`}
                 />
             ))}
         </div>

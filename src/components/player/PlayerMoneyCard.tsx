@@ -43,6 +43,10 @@ function PlayerMoneyCard({
                             {player.player.displayName}
                         </p>
 
+                        <p className="player-money-name font-medium tracking-wide text-slate-600">
+                            @{player.player.username}
+                        </p>
+
                         <p
                             className={`player-money-turn-label mt-1 font-semibold ${
                                 isCurrentPlayer

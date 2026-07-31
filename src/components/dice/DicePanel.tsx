@@ -56,20 +56,20 @@ function DicePanel({
     }
 
     return (
-        <div className="flex flex-col items-center rotate-45">
+        <div className="dice-panel flex flex-col items-center rotate-45">
             {!hasRolled && (
                 <button
                     type="button"
                     onClick={handleRollDice}
                     disabled={disabled}
-                    className="rounded-xl bg-slate-800 px-8 py-3 text-lg font-bold text-white shadow-lg transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+                    className="dice-roll-button rounded-xl bg-slate-800 font-bold text-white shadow-lg transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400"
                 >
                     Tung xúc xắc
                 </button>
             )}
 
             {hasRolled && (
-                <div className="flex min-h-20 items-center gap-4">
+                <div className="dice-result flex items-center">
                     <div
                         key={`first-${firstDiceValue}-${isRolling}`}
                         className={isRolling ? 'dice-drop-left' : ''}
