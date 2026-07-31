@@ -1,16 +1,19 @@
 import { useEffect, useState } from 'react';
-import useBoardGame from '../../hooks/useBoardGame';
 import { ApiRequestError } from '../../services/axiosClient';
 import { boardAPI } from '../../services/boardAPI';
+import { cardAPI } from '../../services/cardAPI';
 import type { ApiResponse } from '../../types/api';
+import type { BoardResponse } from '../../types/board';
 import type { BoardCell as BoardCellData } from '../../types/boardCell';
-import DebugMovePanel from '../game/DebugMovePanel';
-import PlayerLayer from '../player/PlayerLayer';
-import PlayerMoneyLayer from '../player/PlayerMoneyLayer';
-import PropertyOwnershipLayer from '../property/PropertyOwnershipLayer';
+import type { GameCard } from '../../types/card';
+import type {
+    CellAction,
+    LastMoveResult,
+} from '../../types/game';
 import BoardCenter from './BoardCenter';
 import BoardGrid from './BoardGrid';
-import GameStatusPanel from './GameStatusPanel';
+
+const CURRENT_PLAYER_NAME = 'Người chơi 1';
 
 function sortBoardCells(cells: BoardCellData[]): BoardCellData[] {
     return [...cells].sort(
@@ -19,86 +22,166 @@ function sortBoardCells(cells: BoardCellData[]): BoardCellData[] {
     );
 }
 
-function getBoardErrorMessage(error: unknown): string {
+function getApiErrorMessage(
+    error: unknown,
+    fallbackMessage: string,
+): string {
     if (error instanceof ApiRequestError) {
         const responseBody =
             error.responseBody as Partial<
                 ApiResponse<unknown>
             > | null;
 
-        return (
-            responseBody?.message ??
-            (error.status === 404
-                ? 'Board not found'
-                : 'Khong the tai du lieu ban co.')
-        );
+        return responseBody?.message ?? fallbackMessage;
     }
 
-    return 'Khong the tai du lieu ban co.';
+    return fallbackMessage;
+}
+
+function getCellAction(cell: BoardCellData): CellAction {
+    if (cell.type === 'CHANCE') {
+        return 'DRAW_CHANCE_CARD';
+    }
+
+    if (cell.type === 'COMMUNITY') {
+        return 'DRAW_COMMUNITY_CARD';
+    }
+
+    return 'NONE';
 }
 
 function Board() {
+    const [, setBoard] =
+        useState<BoardResponse | null>(null);
     const [boardCells, setBoardCells] =
         useState<BoardCellData[]>([]);
+    const [currentPosition, setCurrentPosition] =
+        useState(0);
+    const [lastMoveResult, setLastMoveResult] =
+        useState<LastMoveResult | null>(null);
+    const [drawnCard, setDrawnCard] =
+        useState<GameCard | null>(null);
     const [isLoadingBoard, setIsLoadingBoard] =
         useState(true);
-    const [boardError, setBoardError] =
+    const [isWaitingForAction, setIsWaitingForAction] =
+        useState(false);
+    const [errorMessage, setErrorMessage] =
         useState<string | null>(null);
 
-    const {
-        players,
-        currentPlayer,
-        isPlayerMoving,
-        isWaitingForAction,
-        lastMoveResult,
-        propertyOwnerships,
-        drawnCard,
-        landedCell,
-        landedPropertyOwnership,
-        landedImprovementPrice,
-        landedRentAfterImprovement,
-        canAffordProperty,
-        canAffordPropertyImprovement,
-        debugMoveCurrentPlayer,
-        handleRollDice,
-        handleBuyProperty,
-        handleSkipProperty,
-        handleBuildProperty,
-        handleSkipBuildProperty,
-        handleMortgageProperty,
-        handleRedeemProperty,
-        handleUseJailFreeCard,
-        handleSkipJailFreeCard,
-        handleDrawChanceCard,
-        handleDrawCommunityCard,
-        handleExecuteCard,
-    } = useBoardGame(boardCells);
-
     useEffect(() => {
-        async function fetchBoardCells(): Promise<void> {
+        async function fetchBoardData(): Promise<void> {
             setIsLoadingBoard(true);
-            setBoardError(null);
+            setErrorMessage(null);
 
             try {
-                const cells =
-                    await boardAPI.getBoardCells();
-                setBoardCells(sortBoardCells(cells));
+                const [boardResponse, cellsResponse] =
+                    await Promise.all([
+                        boardAPI.getBoard(),
+                        boardAPI.getBoardCells(),
+                    ]);
+
+                setBoard(boardResponse);
+                setBoardCells(sortBoardCells(cellsResponse));
             } catch (error) {
+                setBoard(null);
                 setBoardCells([]);
-                setBoardError(getBoardErrorMessage(error));
+                setErrorMessage(
+                    getApiErrorMessage(
+                        error,
+                        'Khong the tai du lieu ban co.',
+                    ),
+                );
             } finally {
                 setIsLoadingBoard(false);
             }
         }
 
-        void fetchBoardCells();
+        void fetchBoardData();
     }, []);
 
-    if (!currentPlayer) {
-        return null;
+    function handleRollDice(totalValue: number): void {
+        if (boardCells.length === 0) {
+            return;
+        }
+
+        const nextPosition =
+            (currentPosition + totalValue) %
+            boardCells.length;
+        const landedCell = boardCells[nextPosition];
+
+        if (!landedCell) {
+            return;
+        }
+
+        const action = getCellAction(landedCell);
+
+        setCurrentPosition(nextPosition);
+        setDrawnCard(null);
+        setLastMoveResult({
+            playerName: CURRENT_PLAYER_NAME,
+            cellId: landedCell.id,
+            cellPosition: landedCell.position,
+            cellName: landedCell.name,
+            cellType: landedCell.type,
+            action,
+        });
+        setIsWaitingForAction(action !== 'NONE');
+    }
+
+    async function handleDrawChanceCard(): Promise<void> {
+        setErrorMessage(null);
+
+        try {
+            const card = await cardAPI.drawChanceCard();
+            setDrawnCard({
+                ...card,
+                type: 'CHANCE',
+            });
+        } catch (error) {
+            setErrorMessage(
+                getApiErrorMessage(
+                    error,
+                    'Khong the rut the Co hoi.',
+                ),
+            );
+            setIsWaitingForAction(false);
+        }
+    }
+
+    async function handleDrawCommunityCard(): Promise<void> {
+        setErrorMessage(null);
+
+        try {
+            const card = await cardAPI.drawCommunityCard();
+            setDrawnCard({
+                ...card,
+                type: 'COMMUNITY',
+            });
+        } catch (error) {
+            setErrorMessage(
+                getApiErrorMessage(
+                    error,
+                    'Khong the rut the Khi van.',
+                ),
+            );
+            setIsWaitingForAction(false);
+        }
+    }
+
+    function clearPendingAction(): void {
+        setDrawnCard(null);
+        setIsWaitingForAction(false);
+        setLastMoveResult(null);
     }
 
     const hasBoardCells = boardCells.length > 0;
+    const landedCell =
+        lastMoveResult === null
+            ? null
+            : boardCells.find(
+                (cell) =>
+                    cell.id === lastMoveResult.cellId,
+            ) ?? null;
 
     return (
         <div className="board-shell relative flex items-center justify-center">
@@ -106,13 +189,11 @@ function Board() {
                 <BoardGrid boardCells={boardCells}>
                     <BoardCenter
                         onRoll={handleRollDice}
-                        onBuyProperty={handleBuyProperty}
-                        onSkipProperty={handleSkipProperty}
-                        onBuildProperty={
-                            handleBuildProperty
-                        }
+                        onBuyProperty={clearPendingAction}
+                        onSkipProperty={clearPendingAction}
+                        onBuildProperty={clearPendingAction}
                         onSkipBuildProperty={
-                            handleSkipBuildProperty
+                            clearPendingAction
                         }
                         onDrawChanceCard={
                             handleDrawChanceCard
@@ -120,57 +201,31 @@ function Board() {
                         onDrawCommunityCard={
                             handleDrawCommunityCard
                         }
-                        onExecuteCard={handleExecuteCard}
+                        onExecuteCard={clearPendingAction}
                         onUseJailFreeCard={
-                            handleUseJailFreeCard
+                            clearPendingAction
                         }
                         onSkipJailFreeCard={
-                            handleSkipJailFreeCard
+                            clearPendingAction
                         }
-                        isPlayerMoving={isPlayerMoving}
+                        isPlayerMoving={false}
                         isWaitingForAction={
                             isWaitingForAction
                         }
                         currentPlayerName={
-                            currentPlayer.name
+                            CURRENT_PLAYER_NAME
                         }
-                        currentPlayerInJail={
-                            currentPlayer.isInJail ?? false
-                        }
-                        currentPlayerJailFreeCardCount={
-                            currentPlayer.jailFreeCardCount ??
-                            0
-                        }
+                        currentPlayerInJail={false}
+                        currentPlayerJailFreeCardCount={0}
                         landedProperty={landedCell}
-                        landedPropertyOwnership={
-                            landedPropertyOwnership
-                        }
-                        landedImprovementPrice={
-                            landedImprovementPrice
-                        }
-                        landedRentAfterImprovement={
-                            landedRentAfterImprovement
-                        }
-                        canAffordProperty={
-                            canAffordProperty
-                        }
-                        canAffordPropertyImprovement={
-                            canAffordPropertyImprovement
-                        }
+                        landedPropertyOwnership={null}
+                        landedImprovementPrice={null}
+                        landedRentAfterImprovement={null}
+                        canAffordProperty={false}
+                        canAffordPropertyImprovement={false}
                         lastMoveResult={lastMoveResult}
                         drawnCard={drawnCard}
                     />
-
-                    {import.meta.env.DEV && (
-                        <DebugMovePanel
-                            onMove={debugMoveCurrentPlayer}
-                            disabled={
-                                isPlayerMoving ||
-                                isWaitingForAction ||
-                                !hasBoardCells
-                            }
-                        />
-                    )}
                 </BoardGrid>
 
                 {isLoadingBoard && (
@@ -179,51 +234,19 @@ function Board() {
                     </div>
                 )}
 
-                {!isLoadingBoard && boardError && (
+                {!isLoadingBoard && errorMessage && (
                     <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/90 px-6 text-center text-sm font-bold text-red-600">
-                        {boardError}
+                        {errorMessage}
                     </div>
                 )}
 
                 {!isLoadingBoard &&
-                    !boardError &&
+                    !errorMessage &&
                     !hasBoardCells && (
                     <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/90 text-sm font-bold text-slate-700">
                         Khong co du lieu o ban co.
                     </div>
                 )}
-
-                <PropertyOwnershipLayer
-                    propertyOwnerships={
-                        propertyOwnerships
-                    }
-                    players={players}
-                    boardCells={boardCells}
-                />
-
-                <PlayerLayer players={players} />
-            </div>
-
-            <PlayerMoneyLayer
-                players={players}
-                currentPlayerId={currentPlayer.id}
-                propertyOwnerships={propertyOwnerships}
-                boardCells={boardCells}
-                onMortgageProperty={
-                    handleMortgageProperty
-                }
-                onRedeemProperty={handleRedeemProperty}
-            />
-
-            <div className="game-status-panel fixed z-30">
-                <GameStatusPanel
-                    currentPlayerName={currentPlayer.name}
-                    isPlayerMoving={isPlayerMoving}
-                    isWaitingForAction={
-                        isWaitingForAction
-                    }
-                    lastMoveResult={lastMoveResult}
-                />
             </div>
         </div>
     );

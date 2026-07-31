@@ -30,11 +30,11 @@ export interface CardActionData {
 export interface GameCard {
     id: number;
     boardId: number;
-    type: CardType;
+    type?: CardType;
     title: string;
     description: string;
     actionType: CardActionType;
-    actionData: CardActionData | null;
+    actionData: CardActionData | unknown | null;
     amount: number | null;
     targetPosition: number | null;
 }
