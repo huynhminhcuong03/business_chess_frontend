@@ -1,57 +1,51 @@
 import { useState } from 'react';
+import type { RollDiceResponse } from '../../types/gameApi';
 import Dice from './Dice';
 
 interface DicePanelProps {
-    onRoll: (totalValue: number) => void;
+    onRoll: () => Promise<RollDiceResponse | null>;
+    onRollComplete: (result: RollDiceResponse) => void;
     disabled: boolean;
     currentPlayerName: string;
 }
 
 const DICE_ANIMATION_DURATION = 900;
 
-function generateDiceValue(): number {
-    return Math.floor(Math.random() * 6) + 1;
-}
-
 function DicePanel({
     onRoll,
+    onRollComplete,
     disabled,
 }: DicePanelProps) {
     const [firstDiceValue, setFirstDiceValue] =
         useState<number>(1);
-
     const [secondDiceValue, setSecondDiceValue] =
         useState<number>(1);
-
     const [isRolling, setIsRolling] =
         useState(false);
-
     const [hasRolled, setHasRolled] =
         useState(false);
 
-    function handleRollDice(): void {
+    async function handleRollDice(): Promise<void> {
         if (disabled || isRolling) {
             return;
         }
 
-        const newFirstDiceValue =
-            generateDiceValue();
+        setIsRolling(true);
 
-        const newSecondDiceValue =
-            generateDiceValue();
+        const result = await onRoll();
+
+        if (!result) {
+            setIsRolling(false);
+            return;
+        }
 
         setHasRolled(true);
-        setFirstDiceValue(newFirstDiceValue);
-        setSecondDiceValue(newSecondDiceValue);
-        setIsRolling(true);
+        setFirstDiceValue(result.dice1);
+        setSecondDiceValue(result.dice2);
 
         window.setTimeout(() => {
             setIsRolling(false);
-
-            onRoll(
-                newFirstDiceValue +
-                newSecondDiceValue,
-            );
+            onRollComplete(result);
         }, DICE_ANIMATION_DURATION);
     }
 
@@ -61,7 +55,7 @@ function DicePanel({
                 <button
                     type="button"
                     onClick={handleRollDice}
-                    disabled={disabled}
+                    disabled={disabled || isRolling}
                     className="dice-roll-button rounded-xl bg-slate-800 font-bold text-white shadow-lg transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400"
                 >
                     Tung xúc xắc

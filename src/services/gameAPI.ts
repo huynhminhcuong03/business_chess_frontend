@@ -1,14 +1,19 @@
 import type { ApiResponse } from '../types/api';
 import type {
-    CreateGamePlayerRequest,
+    BuyPropertyResponse,
     CreateGameRequest,
-    GamePlayerResponse,
     GameResponse,
+    LandCellResponse,
+    PayRentRequest,
+    PayRentResponse,
+    PayTaxRequest,
+    PayTaxResponse,
+    RollDiceResponse,
+    TestMoveRequest,
 } from '../types/gameApi';
 import { axiosClient } from './axiosClient';
 
 const GAME_ENDPOINT = '/api/game';
-const GAME_PLAYER_ENDPOINT = '/api/game_player';
 
 export const gameAPI = {
     async createGame(
@@ -42,24 +47,96 @@ export const gameAPI = {
         return response.data;
     },
 
-    async createGamePlayer(
-        request: CreateGamePlayerRequest,
-    ): Promise<GamePlayerResponse> {
+    async rollDice(
+        gameId: number,
+        gamePlayerId: number,
+    ): Promise<RollDiceResponse> {
         const response =
             await axiosClient.post<
-                ApiResponse<GamePlayerResponse>
-            >(GAME_PLAYER_ENDPOINT, request);
+                ApiResponse<RollDiceResponse>
+            >(
+                `${GAME_ENDPOINT}/${gameId}/play/players/${gamePlayerId}/roll-dice`,
+                undefined,
+            );
 
         return response.data;
     },
 
-    async getGamePlayers(
+    async testMove(
         gameId: number,
-    ): Promise<GamePlayerResponse[]> {
+        gamePlayerId: number,
+        request: TestMoveRequest,
+    ): Promise<RollDiceResponse> {
         const response =
-            await axiosClient.get<
-                ApiResponse<GamePlayerResponse[]>
-            >(`${GAME_PLAYER_ENDPOINT}/game/${gameId}`);
+            await axiosClient.post<
+                ApiResponse<RollDiceResponse>
+            >(
+                `${GAME_ENDPOINT}/${gameId}/play/players/${gamePlayerId}/test-move`,
+                request,
+            );
+
+        return response.data;
+    },
+
+    async landCell(
+        gameId: number,
+        gamePlayerId: number,
+    ): Promise<LandCellResponse> {
+        const response =
+            await axiosClient.post<
+                ApiResponse<LandCellResponse>
+            >(
+                `${GAME_ENDPOINT}/${gameId}/play/players/${gamePlayerId}/land`,
+                undefined,
+            );
+
+        return response.data;
+    },
+
+    async buyProperty(
+        gameId: number,
+        gamePlayerId: number,
+        boardCellId: number,
+    ): Promise<BuyPropertyResponse> {
+        const response =
+            await axiosClient.post<
+                ApiResponse<BuyPropertyResponse>
+            >(
+                `${GAME_ENDPOINT}/${gameId}/play/players/${gamePlayerId}/properties/${boardCellId}/buy`,
+                undefined,
+            );
+
+        return response.data;
+    },
+
+    async payRent(
+        gameId: number,
+        gamePlayerId: number,
+        request: PayRentRequest,
+    ): Promise<PayRentResponse> {
+        const response =
+            await axiosClient.post<
+                ApiResponse<PayRentResponse>
+            >(
+                `${GAME_ENDPOINT}/${gameId}/play/players/${gamePlayerId}/rent/pay`,
+                request,
+            );
+
+        return response.data;
+    },
+
+    async payTax(
+        gameId: number,
+        gamePlayerId: number,
+        request: PayTaxRequest = {},
+    ): Promise<PayTaxResponse> {
+        const response =
+            await axiosClient.post<
+                ApiResponse<PayTaxResponse>
+            >(
+                `${GAME_ENDPOINT}/${gameId}/play/players/${gamePlayerId}/tax/pay`,
+                request,
+            );
 
         return response.data;
     },

@@ -1,5 +1,6 @@
 import type {
     BoardCellType,
+    PropertyDetail,
 } from './board';
 
 export type CellAction =
@@ -50,4 +51,21 @@ export interface PropertyOwnership {
     houseCount: number;
     hasHotel: boolean;
     mortgaged: boolean;
+}
+
+export interface OwnedPropertyCard {
+    gamePropertyId: number;
+    boardCellId: number;
+    boardCellPosition: number;
+    boardCellName: string;
+    boardCellType: BoardCellType;
+    color: string | null;
+    ownerGamePlayerId: number;
+    ownerPlayerId: number | null;
+    houseCount: number;
+    hasHotel: boolean;
+    mortgaged: boolean;
+    buyPrice: number | null;
+    rent: number | null;
+    propertyDetail: PropertyDetail | null;
 }

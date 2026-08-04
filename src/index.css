@@ -110,6 +110,123 @@ body {
     line-height: 1.2;
 }
 
+.property-deed-strip {
+    max-height: clamp(6.5rem, 19vh, 11rem);
+    overflow-y: auto;
+    padding-right: 0.125rem;
+}
+
+.property-deed-tab {
+    min-height: 2.75rem;
+}
+
+.money-transfer-stack {
+    left: 0;
+    top: 0;
+    transform: translate(
+            calc(var(--money-transfer-from-x) - 50%),
+            calc(var(--money-transfer-from-y) - 50%)
+        )
+        scale(0.92);
+    animation: money-transfer-fly 3000ms
+        cubic-bezier(0.22, 0.82, 0.22, 1) forwards;
+    filter: drop-shadow(0 18px 20px rgb(15 23 42 / 0.28));
+    will-change: transform, opacity;
+}
+
+.money-transfer-bills {
+    position: relative;
+    height: 2.25rem;
+    width: 3.65rem;
+}
+
+.money-transfer-bill {
+    position: absolute;
+    display: flex;
+    height: 1.65rem;
+    width: 3.1rem;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #047857;
+    border-radius: 0.25rem;
+    background: linear-gradient(135deg, #dcfce7, #22c55e);
+    color: #064e3b;
+    font-size: 0.9rem;
+    font-weight: 950;
+    line-height: 1;
+}
+
+.money-transfer-bill:nth-child(1) {
+    left: 0;
+    top: 0.48rem;
+    transform: rotate(-9deg);
+}
+
+.money-transfer-bill:nth-child(2) {
+    left: 0.28rem;
+    top: 0.25rem;
+    transform: rotate(4deg);
+}
+
+.money-transfer-bill:nth-child(3) {
+    left: 0.55rem;
+    top: 0;
+    transform: rotate(11deg);
+}
+
+.money-transfer-amount {
+    position: absolute;
+    left: 50%;
+    top: 2.25rem;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    border-radius: 999px;
+    background: rgb(15 23 42 / 0.92);
+    padding: 0.2rem 0.5rem;
+    color: white;
+    font-size: 0.72rem;
+    font-weight: 950;
+    line-height: 1;
+}
+
+@keyframes money-transfer-fly {
+    0% {
+        opacity: 0;
+        transform: translate(
+                calc(var(--money-transfer-from-x) - 50%),
+                calc(var(--money-transfer-from-y) - 50%)
+            )
+            scale(0.76);
+    }
+
+    16% {
+        opacity: 1;
+        transform: translate(
+                calc(var(--money-transfer-from-x) - 50%),
+                calc(var(--money-transfer-from-y) - 50%)
+            )
+            scale(1.08);
+    }
+
+    72% {
+        opacity: 1;
+        transform: translate(
+                calc(var(--money-transfer-to-x) - 50%),
+                calc(var(--money-transfer-to-y) - 50% - 3rem)
+            )
+            scale(1);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translate(
+                calc(var(--money-transfer-to-x) - 50%),
+                calc(var(--money-transfer-to-y) - 50%)
+            )
+            scale(0.78);
+    }
+}
+
 .game-status-panel {
     right: var(--hud-inset);
     top: 50%;
@@ -117,7 +234,7 @@ body {
     transform: translateY(-50%);
 }
 
-.debug-move-panel {
+.test-move-panel {
     bottom: calc(
         var(--hud-inset) + var(--hud-card-reserved-height)
     );

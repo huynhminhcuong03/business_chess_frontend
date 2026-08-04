@@ -3,13 +3,17 @@ import ToastViewport from '../components/feedback/ToastViewport';
 import { useToastNotifications } from '../hooks/useToastNotifications';
 import { ApiRequestError } from '../services/axiosClient';
 import { gameAPI } from '../services/gameAPI';
+import { playerAPI } from '../services/playerAPI';
 import type { ApiResponse } from '../types/api';
 import type {
     GameMode,
-    GamePlayerResponse,
+    GameStatus,
     GameResponse,
-    TokenColor,
 } from '../types/gameApi';
+import type {
+    GamePlayerResponse,
+    TokenColor,
+} from '../types/playerApi';
 
 const GAME_MODES: Array<{
     value: GameMode;
@@ -19,7 +23,8 @@ const GAME_MODES: Array<{
     {
         value: 'NORMAL',
         title: 'Ván thường',
-        description: 'Luật đầy đủ, phù hợp cho một ván dài.',
+        description:
+            'Luật đầy đủ, phù hợp cho một ván dài.',
     },
     // {
     //     value: 'QUICK',
@@ -54,6 +59,13 @@ const TOKEN_COLORS: Array<{
         className: 'bg-amber-400',
     },
 ];
+
+const GAME_STATUS_LABELS: Record<GameStatus, string> = {
+    WAITING: 'Đang chờ',
+    PLAYING: 'Đang chơi',
+    FINISHED: 'Đã kết thúc',
+    CANCELLED: 'Đã hủy',
+};
 
 type GameSetupPageProps = {
     onEnterGame: (game: GameResponse) => void;
@@ -128,11 +140,11 @@ function GameSetupPage({
 
             setCreatedGame(game);
             setPlayers(game.players ?? []);
-            showToast('Tạo game thành công.', 'success');
+            showToast('Tạo ván thành công.', 'success');
         } catch (error) {
             const message = getApiErrorMessage(
                 error,
-                'Không thể tạo game mới.',
+                'Không thể tạo ván mới.',
             );
             setErrorMessage(message);
             showToast(message, 'error');
@@ -150,7 +162,7 @@ function GameSetupPage({
         setErrorMessage(null);
 
         try {
-            const player = await gameAPI.createGamePlayer({
+            const player = await playerAPI.createGamePlayer({
                 gameId: createdGame.id,
                 username: username.trim(),
                 displayName: displayName.trim(),
@@ -201,7 +213,7 @@ function GameSetupPage({
         } catch (error) {
             const message = getApiErrorMessage(
                 error,
-                'Không thể bắt đầu game.',
+                'Không thể bắt đầu ván.',
             );
             setErrorMessage(message);
             showToast(message, 'error');
@@ -223,7 +235,7 @@ function GameSetupPage({
                             Business Chess
                         </p>
                         <h1 className="mt-2 text-3xl font-black tracking-normal text-slate-950 sm:text-4xl">
-                            Chọn ván game
+                            Chọn ván chơi
                         </h1>
                     </header>
 
@@ -231,7 +243,6 @@ function GameSetupPage({
                         <h2 className="text-xl font-black text-slate-950">
                             Chế độ chơi
                         </h2>
-                        {/* sm:grid-cols-2 đưa nó xuống dưới tạo 2 loại game*/}
                         <div className="mt-4 grid gap-3">
                             {GAME_MODES.map((mode) => {
                                 const isSelected =
@@ -278,7 +289,7 @@ function GameSetupPage({
                         >
                             {isCreatingGame
                                 ? 'Đang tạo...'
-                                : 'Tạo game'}
+                                : 'Tạo ván'}
                         </button>
                     </section>
                 </div>
@@ -303,8 +314,12 @@ function GameSetupPage({
                         </h1>
                     </div>
                     <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">
-                        Game #{createdGame.id} ·{' '}
-                        {createdGame.status}
+                        Ván #{createdGame.id} ·{' '}
+                        {
+                            GAME_STATUS_LABELS[
+                                createdGame.status
+                            ]
+                        }
                     </div>
                 </header>
 
@@ -330,7 +345,7 @@ function GameSetupPage({
                             </label>
 
                             <label className="grid gap-1 text-sm font-bold text-slate-700">
-                                Username
+                                Tên đăng nhập
                                 <input
                                     value={username}
                                     onChange={(event) =>
@@ -421,7 +436,7 @@ function GameSetupPage({
                             >
                                 {isStartingGame
                                     ? 'Đang bắt đầu...'
-                                    : 'Bắt đầu game'}
+                                    : 'Bắt đầu ván'}
                             </button>
                         </div>
 
@@ -479,9 +494,8 @@ function GameSetupPage({
                                                     </dt>
                                                     <dd className="font-black text-slate-950">
                                                         #
-                                                        {
-                                                            gamePlayer.turnOrder
-                                                        }
+                                                        {gamePlayer.turnOrder +
+                                                            1}
                                                     </dd>
                                                 </div>
                                                 <div>

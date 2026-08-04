@@ -53,7 +53,7 @@ function PropertyPurchasePanel({
                     <p className="text-sm font-extrabold uppercase tracking-[0.25em] text-emerald-600">
                         {property
                             ? getCellTypeLabel(property.type)
-                            : 'Tai san'}
+                            : 'Tài sản'}
                     </p>
 
                     <h2
@@ -61,67 +61,67 @@ function PropertyPurchasePanel({
                         className="mt-4 text-2xl font-extrabold text-slate-900"
                     >
                         {property?.name ??
-                            'Mua tai san nay?'}
+                            'Mua tài sản này?'}
                     </h2>
 
                     {propertyDetail && (
                         <div className="mt-5 grid grid-cols-2 gap-3 text-left">
                             <InfoItem
-                                label="Gia mua"
+                                label="Giá mua"
                                 value={formatPlayerMoney(
                                     propertyDetail.buyPrice,
                                 )}
                             />
                             <InfoItem
-                                label="The chap"
+                                label="Thế chấp"
                                 value={formatPlayerMoney(
                                     propertyDetail.mortgagePrice,
                                 )}
                             />
                             <InfoItem
-                                label="Gia nha"
+                                label="Giá nhà"
                                 value={formatPlayerMoney(
                                     propertyDetail.housePrice,
                                 )}
                             />
                             <InfoItem
-                                label="Gia khach san"
+                                label="Giá khách sạn"
                                 value={formatPlayerMoney(
                                     propertyDetail.hotelPrice,
                                 )}
                             />
                             <InfoItem
-                                label="Thue co ban"
+                                label="Thuê cơ bản"
                                 value={formatPlayerMoney(
                                     propertyDetail.rentLevel0,
                                 )}
                             />
                             <InfoItem
-                                label="Thue 1 nha"
+                                label="Thuê 1 nhà"
                                 value={formatPlayerMoney(
                                     propertyDetail.rentLevel1,
                                 )}
                             />
                             <InfoItem
-                                label="Thue 2 nha"
+                                label="Thuê 2 nhà"
                                 value={formatPlayerMoney(
                                     propertyDetail.rentLevel2,
                                 )}
                             />
                             <InfoItem
-                                label="Thue 3 nha"
+                                label="Thuê 3 nhà"
                                 value={formatPlayerMoney(
                                     propertyDetail.rentLevel3,
                                 )}
                             />
                             <InfoItem
-                                label="Thue 4 nha"
+                                label="Thuê 4 nhà"
                                 value={formatPlayerMoney(
                                     propertyDetail.rentLevel4,
                                 )}
                             />
                             <InfoItem
-                                label="Thue khach san"
+                                label="Thuê khách sạn"
                                 value={formatPlayerMoney(
                                     propertyDetail.rentHotel,
                                 )}
@@ -131,13 +131,13 @@ function PropertyPurchasePanel({
 
                     {!canAffordProperty && (
                         <p className="mt-4 text-sm font-semibold text-red-600">
-                            Ban khong du tien de mua tai san nay.
+                            Bạn không đủ tiền để mua tài sản này.
                         </p>
                     )}
 
                     <p className="mt-4 text-xs font-semibold text-slate-500">
-                        Tu bo qua sau {AUTO_SKIP_SECONDS} giay
-                        neu khong mua.
+                        Tự bỏ qua sau {AUTO_SKIP_SECONDS} giây
+                        nếu không mua.
                     </p>
 
                     <div className="mt-7 flex items-center justify-center gap-3">
@@ -155,7 +155,7 @@ function PropertyPurchasePanel({
                             onClick={onSkipProperty}
                             className="rounded-lg bg-slate-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-600"
                         >
-                            Bo qua
+                            Bỏ qua
                         </button>
                     </div>
                 </div>

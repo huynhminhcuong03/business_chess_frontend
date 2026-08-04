@@ -58,7 +58,7 @@ function HomePage() {
             } catch (error) {
                 const message = getApiErrorMessage(
                     error,
-                    'Khong the tai lai game.',
+                    'Không thể tải lại game.',
                 );
 
                 setActiveGame(null);
@@ -106,7 +106,7 @@ function HomePage() {
     if (isLoadingGame) {
         return (
             <main className="flex min-h-dvh items-center justify-center bg-slate-100 px-4 text-center text-sm font-bold text-slate-700">
-                Dang tai lai game...
+                Đang tải lại game...
             </main>
         );
     }
@@ -126,7 +126,10 @@ function HomePage() {
 
     return (
         <main className="game-screen flex items-center justify-center bg-slate-100">
-            <Board game={activeGame} />
+            <Board
+                key={activeGame.id}
+                game={activeGame}
+            />
         </main>
     );
 }

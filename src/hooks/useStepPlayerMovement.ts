@@ -6,7 +6,7 @@ import {
     useRef,
     useState,
 } from 'react';
-import type { GamePlayerResponse } from '../types/gameApi';
+import type { GamePlayerResponse } from '../types/playerApi';
 
 const DEFAULT_PLAYER_MOVE_STEP_DURATION = 300;
 

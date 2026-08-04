@@ -5,15 +5,19 @@ import type {
     LastMoveResult,
     PropertyOwnership,
 } from '../../types/game';
+import type { RollDiceResponse } from '../../types/gameApi';
 import CardDeckButton from '../card/CardDeckButton';
 import CardResultModal from '../card/CardResultModal';
 import DicePanel from '../dice/DicePanel';
 import JailDecisionPanel from '../game/JailDecisionPanel';
+import TaxPaymentPanel from '../game/TaxPaymentPanel';
 import PropertyBuildPanel from '../property/PropertyBuildPanel';
 import PropertyPurchasePanel from '../property/PropertyPurchasePanel';
 
 interface BoardCenterProps {
-    onRoll: (totalValue: number) => void;
+    onRoll: () => Promise<RollDiceResponse | null>;
+    onRollComplete: (result: RollDiceResponse) => void;
+    diceResetKey: string;
     onBuyProperty: () => void;
     onSkipProperty: () => void;
     onBuildProperty: () => void;
@@ -21,9 +25,12 @@ interface BoardCenterProps {
     onDrawChanceCard: () => void;
     onDrawCommunityCard: () => void;
     onExecuteCard: () => void;
+    onPayFixedIncomeTax: () => void;
+    onPayPercentIncomeTax: () => void;
     onUseJailFreeCard: () => void;
     onSkipJailFreeCard: () => void;
     isPlayerMoving: boolean;
+    isRollingDice: boolean;
     isWaitingForAction: boolean;
     currentPlayerName: string;
     currentPlayerInJail: boolean;
@@ -40,6 +47,8 @@ interface BoardCenterProps {
 
 function BoardCenter({
     onRoll,
+    onRollComplete,
+    diceResetKey,
     onBuyProperty,
     onSkipProperty,
     onBuildProperty,
@@ -47,9 +56,12 @@ function BoardCenter({
     onDrawChanceCard,
     onDrawCommunityCard,
     onExecuteCard,
+    onPayFixedIncomeTax,
+    onPayPercentIncomeTax,
     onUseJailFreeCard,
     onSkipJailFreeCard,
     isPlayerMoving,
+    isRollingDice,
     isWaitingForAction,
     currentPlayerName,
     currentPlayerInJail,
@@ -83,6 +95,10 @@ function BoardCenter({
             'DRAW_COMMUNITY_CARD' &&
         drawnCard === null;
 
+    const canChooseIncomeTax =
+        isWaitingForAction &&
+        lastMoveResult?.action === 'PAY_INCOME_TAX';
+
     const isWaitingForCardDraw =
         canDrawChanceCard ||
         canDrawCommunityCard;
@@ -96,6 +112,7 @@ function BoardCenter({
     const shouldShowDice =
         !canChoosePropertyAction &&
         !canChooseBuildAction &&
+        !canChooseIncomeTax &&
         !isWaitingForCardDraw &&
         !shouldChooseJailFreeCard &&
         drawnCard === null;
@@ -138,10 +155,14 @@ function BoardCenter({
                 {shouldShowDice && (
                     <div className="dice-panel-anchor absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2">
                         <DicePanel
-                            key={currentPlayerName}
+                            key={diceResetKey}
                             onRoll={onRoll}
+                            onRollComplete={
+                                onRollComplete
+                            }
                             disabled={
                                 isPlayerMoving ||
+                                isRollingDice ||
                                 isWaitingForAction
                             }
                             currentPlayerName={
@@ -187,6 +208,19 @@ function BoardCenter({
                     }
                     onBuildProperty={onBuildProperty}
                     onSkipBuild={onSkipBuildProperty}
+                />
+            )}
+
+            {canChooseIncomeTax && (
+                <TaxPaymentPanel
+                    taxCell={landedProperty}
+                    playerName={currentPlayerName}
+                    onPayFixedIncomeTax={
+                        onPayFixedIncomeTax
+                    }
+                    onPayPercentIncomeTax={
+                        onPayPercentIncomeTax
+                    }
                 />
             )}
 

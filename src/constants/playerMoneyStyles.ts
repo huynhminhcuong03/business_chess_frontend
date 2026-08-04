@@ -1,4 +1,4 @@
-import type { TokenColor } from '../types/gameApi';
+import type { TokenColor } from '../types/playerApi';
 
 export const PLAYER_MONEY_POSITIONS = [
     'left-[var(--hud-inset)] top-[var(--hud-inset)]',

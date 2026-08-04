@@ -1,21 +1,23 @@
 import { PLAYER_TOKEN_COLOR_CLASSES } from '../../constants/playerStyles';
-import type { GamePlayerResponse } from '../../types/gameApi';
+import type { GamePlayerResponse } from '../../types/playerApi';
 
 interface PlayerTokenProps {
     player: GamePlayerResponse;
 }
 
 function PlayerToken({ player }: PlayerTokenProps) {
+    const displayTurnOrder = player.turnOrder + 1;
+
     return (
         <div
             title={player.player.displayName}
             aria-label={player.player.displayName}
-            className={`relative flex h-[18px] w-[18px] items-center justify-center rounded-full border-2 border-white text-[9px] font-black leading-none text-white shadow-lg ring-1 ring-slate-900/25 ${
+            className={`relative flex h-4.5 w-4.5 items-center justify-center rounded-full border-2 border-white text-[9px] font-black leading-none text-white shadow-lg ring-1 ring-slate-900/25 ${
                 PLAYER_TOKEN_COLOR_CLASSES[player.tokenColor]
             }`}
         >
             <span className="absolute inset-0 rounded-full bg-white/20" />
-            <span className="relative">{player.turnOrder}</span>
+            <span className="relative">{displayTurnOrder}</span>
         </div>
     );
 }

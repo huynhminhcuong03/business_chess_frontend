@@ -118,9 +118,7 @@ function CardDeckButton({
             </span>
 
             {!enabled && (
-                <p
-                    className="sr-only"
-                >
+                <p className="sr-only">
                     Chưa thể rút bộ thẻ này
                 </p>
             )}

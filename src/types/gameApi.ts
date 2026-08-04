@@ -1,3 +1,7 @@
+import type { GamePlayerResponse } from './playerApi';
+import type { BoardCellType } from './boardCell';
+import type { CellAction } from './game';
+
 export type GameMode = 'NORMAL' | 'QUICK';
 
 export type GameStatus =
@@ -6,36 +10,8 @@ export type GameStatus =
     | 'FINISHED'
     | 'CANCELLED';
 
-export type TokenColor =
-    | 'RED'
-    | 'BLUE'
-    | 'GREEN'
-    | 'YELLOW';
-
 export interface CreateGameRequest {
     gameMode?: GameMode;
-}
-
-export interface PlayerResponse {
-    id: number;
-    username: string;
-    displayName: string;
-    createdAt: string;
-}
-
-export interface GamePlayerResponse {
-    id: number;
-    gameId: number;
-    player: PlayerResponse;
-    turnOrder: number;
-    tokenColor: TokenColor;
-    money: number;
-    position: number;
-    inJail: boolean;
-    jailTurn: number;
-    bankrupt: boolean;
-    jailFreeCard: number;
-    joinedAt: string;
 }
 
 export interface GameResponse {
@@ -51,11 +27,96 @@ export interface GameResponse {
     finishedAt: string | null;
     updatedAt: string;
     players: GamePlayerResponse[];
+    properties: GamePropertyResponse[];
 }
 
-export interface CreateGamePlayerRequest {
-    gameId: number;
-    username: string;
-    displayName: string;
-    tokenColor: TokenColor;
+export interface RollDiceResponse {
+    dice1: number;
+    dice2: number;
+    total: number;
+    isDouble: boolean;
+    oldPosition: number;
+    newPosition: number;
+    passedStart: boolean;
+    currentPlayerId: number;
+    nextPlayerId: number;
+}
+
+export interface TestMoveRequest {
+    targetPosition: number;
+    diceTotal: number;
+}
+
+export interface GamePropertyResponse {
+    id: number;
+    boardCellId: number;
+    boardCellPosition: number;
+    boardCellName: string;
+    ownerGamePlayerId: number;
+    ownerPlayerId: number;
+    houseCount: number;
+    hasHotel: boolean;
+    mortgaged: boolean;
+}
+
+export interface LandedPropertyResponse {
+    gamePropertyId: number | null;
+    ownerGamePlayerId: number | null;
+    ownerPlayerId: number | null;
+    buyPrice: number;
+    rent: number | null;
+    houseCount: number;
+    hasHotel: boolean;
+    mortgaged: boolean;
+}
+
+export interface LandCellResponse {
+    cellId: number;
+    cellPosition: number;
+    cellName: string;
+    cellType: BoardCellType;
+    action: CellAction;
+    property: LandedPropertyResponse | null;
+}
+
+export interface BuyPropertyResponse {
+    gamePropertyId: number;
+    boardCellId: number;
+    boardCellPosition: number;
+    boardCellName: string;
+    ownerGamePlayerId: number;
+    ownerMoney: number;
+    buyPrice: number;
+}
+
+export interface PayRentResponse {
+    boardCellId: number;
+    boardCellPosition: number;
+    boardCellName: string;
+    payerGamePlayerId: number;
+    ownerGamePlayerId: number;
+    rentAmount: number;
+    payerMoney: number;
+    ownerMoney: number;
+}
+
+export interface PayRentRequest {
+    diceTotal: number;
+}
+
+export type IncomeTaxOption = 'FIXED' | 'PERCENT';
+
+export interface PayTaxRequest {
+    incomeTaxOption?: IncomeTaxOption;
+}
+
+export interface PayTaxResponse {
+    boardCellId: number;
+    boardCellPosition: number;
+    boardCellName: string;
+    taxType: 'INCOME_TAX' | 'LUXURY_TAX';
+    incomeTaxOption: IncomeTaxOption | null;
+    taxAmount: number;
+    playerMoney: number;
+    netWorth: number | null;
 }

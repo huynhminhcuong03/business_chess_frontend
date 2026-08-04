@@ -1,5 +1,5 @@
 import { BOARD_GRID_TRACKS } from '../../constants/boardStyles';
-import type { GamePlayerResponse } from '../../types/gameApi';
+import type { GamePlayerResponse } from '../../types/playerApi';
 import { getBoardGridPosition } from '../../utils/getBoardGridPosition';
 import PlayerToken from './PlayerToken';
 
