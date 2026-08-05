@@ -5,12 +5,21 @@ import PlayerToken from './PlayerToken';
 
 interface PlayerLayerProps {
     players: GamePlayerResponse[];
+    hiddenPlayerIds?: number[];
 }
 
-function PlayerLayer({ players }: PlayerLayerProps) {
+function PlayerLayer({
+    players,
+    hiddenPlayerIds = [],
+}: PlayerLayerProps) {
+    const hiddenPlayerIdSet = new Set(hiddenPlayerIds);
     const playersByPosition = players.reduce<
         Record<number, GamePlayerResponse[]>
     >((groupedPlayers, player) => {
+        if (hiddenPlayerIdSet.has(player.id)) {
+            return groupedPlayers;
+        }
+
         const position = ((player.position % 40) + 40) % 40;
         groupedPlayers[position] ??= [];
         groupedPlayers[position].push(player);

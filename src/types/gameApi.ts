@@ -1,5 +1,10 @@
 import type { GamePlayerResponse } from './playerApi';
 import type { BoardCellType } from './boardCell';
+import type {
+    CardActionType,
+    CardType,
+    GameCard,
+} from './card';
 import type { CellAction } from './game';
 
 export type GameMode = 'NORMAL' | 'QUICK';
@@ -38,13 +43,25 @@ export interface RollDiceResponse {
     oldPosition: number;
     newPosition: number;
     passedStart: boolean;
+    startReward: number;
+    currentPlayerMoney: number;
     currentPlayerId: number;
     nextPlayerId: number;
+    sentToJail?: boolean;
+    jailPosition?: number | null;
+    inJail?: boolean;
+    jailTurn?: number;
+    jailFreeCard?: number;
 }
 
 export interface TestMoveRequest {
     targetPosition: number;
     diceTotal: number;
+}
+
+export interface TestRollRequest {
+    dice1: number;
+    dice2: number;
 }
 
 export interface GamePropertyResponse {
@@ -119,4 +136,65 @@ export interface PayTaxResponse {
     taxAmount: number;
     playerMoney: number;
     netWorth: number | null;
+}
+
+export interface CardPlayerMoneyChangeResponse {
+    gamePlayerId: number;
+    moneyDelta: number;
+    moneyAfter: number;
+}
+
+export interface DrawCardResponse {
+    card: GameCard;
+    cardType: CardType;
+    actionType: CardActionType;
+    gamePlayerId: number;
+    oldPosition: number;
+    newPosition: number;
+    moved: boolean;
+    passedStart: boolean;
+    startReward: number;
+    sentToJail: boolean;
+    jailPosition: number | null;
+    currentPlayerMoney: number;
+    nextPlayerId: number | null;
+    moneyChanges: CardPlayerMoneyChangeResponse[];
+}
+
+export type JailActionType =
+    | 'PAY_FINE'
+    | 'ROLL_FOR_DOUBLE'
+    | 'USE_JAIL_CARD';
+
+export interface JailActionRequest {
+    actionType: JailActionType;
+}
+
+export interface JailActionResponse {
+    actionType: JailActionType;
+    dice1: number;
+    dice2: number;
+    total: number;
+    isDouble: boolean;
+    moved: boolean;
+    oldPosition: number;
+    newPosition: number;
+    passedStart: boolean;
+    startReward: number;
+    currentPlayerMoney: number;
+    currentPlayerId: number;
+    nextPlayerId: number;
+    inJail: boolean;
+    jailTurn: number;
+    jailFreeCard: number;
+    finePaid: number;
+}
+
+export interface GoToJailResponse {
+    gamePlayerId: number;
+    fromPosition: number;
+    jailPosition: number;
+    inJail: boolean;
+    jailTurn: number;
+    jailFreeCard: number;
 }

@@ -23,20 +23,17 @@ function TaxPaymentPanel({
         >
             <div className="w-full max-w-sm overflow-hidden rounded-2xl border-4 border-sky-400 bg-white text-center shadow-2xl">
                 <div className="bg-sky-500 px-6 py-4 text-white">
-                    <p className="text-xs font-extrabold uppercase tracking-[0.25em]">
-                        Thuáº¿ thu nháº­p
-                    </p>
                     <h2
                         id="tax-payment-title"
                         className="mt-2 text-2xl font-extrabold"
                     >
-                        {taxCell?.name ?? 'ÄÃ³ng thuáº¿'}
+                        {taxCell?.name ?? 'Thuế thu nhập'}
                     </h2>
                 </div>
 
                 <div className="p-6">
                     <p className="text-sm font-semibold text-slate-600">
-                        {playerName} phai chon cach dong thue truoc khi tinh tong tai san.
+                        {playerName} phải chọn cách đóng thuế trước khi tính tổng tài sản.
                     </p>
 
                     <div className="mt-6 grid gap-3">
@@ -45,7 +42,7 @@ function TaxPaymentPanel({
                             onClick={onPayFixedIncomeTax}
                             className="rounded-lg bg-sky-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-sky-700"
                         >
-                            Tráº£ cá»‘ Ä‘á»‹nh {formatPlayerMoney(200)}
+                            Trả {formatPlayerMoney(200)}$
                         </button>
 
                         <button
@@ -53,7 +50,7 @@ function TaxPaymentPanel({
                             onClick={onPayPercentIncomeTax}
                             className="rounded-lg bg-slate-800 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-900"
                         >
-                            Tra 10% tong tai san
+                            Trả 10% tổng tài sản
                         </button>
                     </div>
                 </div>

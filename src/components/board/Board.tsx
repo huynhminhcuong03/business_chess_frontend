@@ -1,265 +1,72 @@
 import {
-    useCallback,
-    useEffect,
     useRef,
     useState,
 } from 'react';
-import { ApiRequestError } from '../../services/axiosClient';
-import { boardAPI } from '../../services/boardAPI';
-import { cardAPI } from '../../services/cardAPI';
 import { gameAPI } from '../../services/gameAPI';
 import ToastViewport from '../feedback/ToastViewport';
 import TestMovePanel from '../game/TestMovePanel';
+import { useBoardAnimations } from '../../hooks/useBoardAnimations';
+import { useBoardCardActions } from '../../hooks/useBoardCardActions';
+import { useBoardData } from '../../hooks/useBoardData';
+import {
+    getGamePlayerName,
+    useCurrentPlayerInfo,
+} from '../../hooks/useCurrentPlayerInfo';
+import { useJailActions } from '../../hooks/useJailActions';
+import { useRentPaymentAction } from '../../hooks/useRentPaymentAction';
 import { useStepPlayerMovement } from '../../hooks/useStepPlayerMovement';
+import { useTaxPaymentAction } from '../../hooks/useTaxPaymentAction';
+import { useTestMoveActions } from '../../hooks/useTestMoveActions';
 import { useToastNotifications } from '../../hooks/useToastNotifications';
-import type { ApiResponse } from '../../types/api';
-import type { BoardResponse } from '../../types/board';
-import type { BoardCell as BoardCellData } from '../../types/boardCell';
+import type {
+    ResolvedMove,
+    SelectedJailAction,
+} from '../../types/boardFlow';
 import type { GameCard } from '../../types/card';
+import { formatPlayerMoney } from '../../utils/formatMoney';
+import { getApiErrorMessage } from '../../utils/apiErrorMessage';
+import {
+    toResolvedMoveFromRoll,
+    toRollDiceResponseFromJailAction,
+} from '../../utils/boardMoveMappers';
+import {
+    canPlayerAffordLandedProperty,
+} from '../../utils/boardPropertyCards';
+import { usePropertyPurchaseAction } from '../../hooks/usePropertyPurchaseAction';
+import {
+    updateMovedPlayer,
+    updatePlayerAfterGoToJail as applyPlayerAfterGoToJail,
+    updatePlayersAfterCardDraw,
+} from '../../utils/playerStateUpdates';
 import type {
     LastMoveResult,
-    OwnedPropertyCard,
 } from '../../types/game';
 import BoardCenter from './BoardCenter';
 import BoardGrid from './BoardGrid';
+import JailMoveAnimation from '../player/JailMoveAnimation';
 import MoneyTransferAnimation from '../player/MoneyTransferAnimation';
-import type { MoneyTransfer } from '../player/MoneyTransferAnimation';
 import PlayerLayer from '../player/PlayerLayer';
 import PlayerMoneyLayer from '../player/PlayerMoneyLayer';
 import type {
-    BuyPropertyResponse,
-    GamePropertyResponse,
+    DrawCardResponse,
     GameResponse,
-    IncomeTaxOption,
+    JailActionResponse,
     LandCellResponse,
     LandedPropertyResponse,
-    PayRentResponse,
-    PayTaxResponse,
     RollDiceResponse,
 } from '../../types/gameApi';
 import type { GamePlayerResponse } from '../../types/playerApi';
-
-const FALLBACK_PLAYER_NAME = 'Người chơi';
-const MONEY_TRANSFER_FALLBACK_DURATION = 3100;
 
 interface BoardProps {
     game: GameResponse;
 }
 
-interface ResolvedMove {
-    currentPlayerId: number;
-    nextPlayerId: number;
-    oldPosition: number;
-    newPosition: number;
-    stepCount: number;
-    rentDiceTotal: number;
-}
-
-interface TestMoveOptions {
-    targetPosition: number;
-    rentDiceTotal: number;
-}
-
-function sortBoardCells(cells: BoardCellData[]): BoardCellData[] {
-    return [...cells].sort(
-        (firstCell, secondCell) =>
-            firstCell.position - secondCell.position,
-    );
-}
-
-function getApiErrorMessage(
-    error: unknown,
-    fallbackMessage: string,
-): string {
-    if (error instanceof ApiRequestError) {
-        const responseBody =
-            error.responseBody as Partial<
-                ApiResponse<unknown>
-            > | null;
-
-        return responseBody?.message ?? fallbackMessage;
-    }
-
-    return fallbackMessage;
-}
-
-function getRentFromProperty(
-    property: GamePropertyResponse,
-    cell: BoardCellData,
-): number | null {
-    const detail = cell.propertyDetail;
-
-    if (!detail) {
-        return null;
-    }
-
-    if (property.mortgaged) {
-        return 0;
-    }
-
-    if (property.hasHotel) {
-        return detail.rentHotel;
-    }
-
-    switch (property.houseCount) {
-        case 1:
-            return detail.rentLevel1;
-        case 2:
-            return detail.rentLevel2;
-        case 3:
-            return detail.rentLevel3;
-        case 4:
-            return detail.rentLevel4;
-        default:
-            return detail.rentLevel0;
-    }
-}
-
-function toOwnedPropertyCard(
-    property: GamePropertyResponse,
-    cell: BoardCellData,
-): OwnedPropertyCard {
-    return {
-        gamePropertyId: property.id,
-        boardCellId: property.boardCellId,
-        boardCellPosition: property.boardCellPosition,
-        boardCellName: property.boardCellName,
-        boardCellType: cell.type,
-        color: cell.color,
-        ownerGamePlayerId: property.ownerGamePlayerId,
-        ownerPlayerId: property.ownerPlayerId,
-        houseCount: property.houseCount,
-        hasHotel: property.hasHotel,
-        mortgaged: property.mortgaged,
-        buyPrice: cell.propertyDetail?.buyPrice ?? null,
-        rent: getRentFromProperty(property, cell),
-        propertyDetail: cell.propertyDetail,
-    };
-}
-
-function getOwnedProperties(
-    properties: GamePropertyResponse[],
-    cells: BoardCellData[],
-): OwnedPropertyCard[] {
-    return properties
-        .map((property) => {
-            const cell = cells.find(
-                (boardCell) =>
-                    boardCell.id === property.boardCellId,
-            );
-
-            return cell
-                ? toOwnedPropertyCard(property, cell)
-                : null;
-        })
-        .filter(
-            (
-                property,
-            ): property is OwnedPropertyCard =>
-                property !== null,
-        );
-}
-
-function toOwnedPropertyCardFromBuy(
-    property: BuyPropertyResponse,
-    cell: BoardCellData,
-): OwnedPropertyCard {
-    return {
-        gamePropertyId: property.gamePropertyId,
-        boardCellId: property.boardCellId,
-        boardCellPosition: property.boardCellPosition,
-        boardCellName: property.boardCellName,
-        boardCellType: cell.type,
-        color: cell.color,
-        ownerGamePlayerId: property.ownerGamePlayerId,
-        ownerPlayerId: null,
-        houseCount: 0,
-        hasHotel: false,
-        mortgaged: false,
-        buyPrice: property.buyPrice,
-        rent: cell.propertyDetail?.rentLevel0 ?? null,
-        propertyDetail: cell.propertyDetail,
-    };
-}
-
-function getCurrentGamePlayer(
-    players: GamePlayerResponse[],
-    currentPlayerId: number | null,
-): GamePlayerResponse | null {
-    if (players.length === 0) {
-        return null;
-    }
-
-    return (
-        players.find(
-            (player) =>
-                player.id === currentPlayerId ||
-                player.player.id === currentPlayerId,
-        ) ?? players[0]
-    );
-}
-
-function getGamePlayerName(
-    players: GamePlayerResponse[],
-    gamePlayerId: number,
-): string {
-    return (
-        players.find((player) => player.id === gamePlayerId)
-            ?.player.displayName ?? FALLBACK_PLAYER_NAME
-    );
-}
-
-function canPlayerAffordLandedProperty(
-    players: GamePlayerResponse[],
-    gamePlayerId: number,
-    landResult: LandCellResponse,
-): boolean {
-    const buyPrice = landResult.property?.buyPrice;
-
-    if (buyPrice === undefined || buyPrice === null) {
-        return false;
-    }
-
-    return (
-        players.find((player) => player.id === gamePlayerId)
-            ?.money ?? 0
-    ) >= buyPrice;
-}
-
-function getRollRentDiceTotal(
-    rollResult: RollDiceResponse,
-): number {
-    return rollResult.dice1 + rollResult.dice2;
-}
-
-function toResolvedMoveFromRoll(
-    rollResult: RollDiceResponse,
-): ResolvedMove {
-    return {
-        currentPlayerId: rollResult.currentPlayerId,
-        nextPlayerId: rollResult.nextPlayerId,
-        oldPosition: rollResult.oldPosition,
-        newPosition: rollResult.newPosition,
-        stepCount: rollResult.total,
-        rentDiceTotal: getRollRentDiceTotal(rollResult),
-    };
-}
-
 function Board({ game }: BoardProps) {
-    const playerMoneyElementsRef = useRef<
-        Map<number, HTMLDivElement>
-    >(new Map());
-    const moneyTransferResolveRef =
-        useRef<(() => void) | null>(null);
-    const [, setBoard] =
-        useState<BoardResponse | null>(null);
-    const [boardCells, setBoardCells] =
-        useState<BoardCellData[]>([]);
+    const pendingJailActionResultRef =
+        useRef<JailActionResponse | null>(null);
     const [gamePlayers, setGamePlayers] = useState<
         GamePlayerResponse[]
     >(game.players ?? []);
-    const [ownedProperties, setOwnedProperties] =
-        useState<OwnedPropertyCard[]>([]);
     const [currentPlayerId, setCurrentPlayerId] =
         useState<number | null>(game.currentPlayerId);
     const [pendingNextPlayerId, setPendingNextPlayerId] =
@@ -272,145 +79,57 @@ function Board({ game }: BoardProps) {
         useState<LandedPropertyResponse | null>(null);
     const [drawnCard, setDrawnCard] =
         useState<GameCard | null>(null);
-    const [isLoadingBoard, setIsLoadingBoard] =
-        useState(true);
+    const [pendingCardResult, setPendingCardResult] =
+        useState<DrawCardResponse | null>(null);
+    const [
+        selectedJailAction,
+        setSelectedJailAction,
+    ] = useState<SelectedJailAction | null>(null);
     const [isWaitingForAction, setIsWaitingForAction] =
         useState(false);
     const [isRollingDice, setIsRollingDice] =
         useState(false);
-    const [errorMessage, setErrorMessage] =
-        useState<string | null>(null);
-    const [moneyTransfer, setMoneyTransfer] =
-        useState<MoneyTransfer | null>(null);
+    const {
+        notifications,
+        showToast,
+        dismissToast,
+    } = useToastNotifications();
+    const {
+        boardCells,
+        errorMessage,
+        isLoadingBoard,
+        ownedProperties,
+        setErrorMessage,
+        setOwnedProperties,
+    } = useBoardData({
+        properties: game.properties ?? [],
+        showToast,
+    });
     const { isPlayerMoving, movePlayer } =
         useStepPlayerMovement({
             boardCellCount: boardCells.length,
             setGamePlayers,
         });
     const {
-        notifications,
-        showToast,
-        dismissToast,
-    } = useToastNotifications();
-
-    const setPlayerMoneyElement = useCallback(
-        (
-            playerId: number,
-            element: HTMLDivElement | null,
-        ) => {
-            if (element) {
-                playerMoneyElementsRef.current.set(
-                    playerId,
-                    element,
-                );
-                return;
-            }
-
-            playerMoneyElementsRef.current.delete(playerId);
-        },
-        [],
-    );
-
-    function getElementCenter(
-        element: HTMLElement,
-    ): { x: number; y: number } {
-        const rect = element.getBoundingClientRect();
-
-        return {
-            x: rect.left + rect.width / 2,
-            y: rect.top + rect.height / 2,
-        };
-    }
-
-    function handleMoneyTransferComplete(): void {
-        setMoneyTransfer(null);
-        moneyTransferResolveRef.current?.();
-        moneyTransferResolveRef.current = null;
-    }
-
-    function playRentTransferAnimation(
-        rentPayment: PayRentResponse,
-    ): Promise<void> {
-        const payerElement =
-            playerMoneyElementsRef.current.get(
-                rentPayment.payerGamePlayerId,
-            );
-        const ownerElement =
-            playerMoneyElementsRef.current.get(
-                rentPayment.ownerGamePlayerId,
-            );
-
-        if (!payerElement || !ownerElement) {
-            return Promise.resolve();
-        }
-
-        return new Promise((resolve) => {
-            moneyTransferResolveRef.current = resolve;
-            setMoneyTransfer({
-                id: Date.now(),
-                amount: rentPayment.rentAmount,
-                from: getElementCenter(payerElement),
-                to: getElementCenter(ownerElement),
-            });
-
-            window.setTimeout(() => {
-                if (moneyTransferResolveRef.current) {
-                    handleMoneyTransferComplete();
-                }
-            }, MONEY_TRANSFER_FALLBACK_DURATION);
-        });
-    }
-
-    useEffect(() => {
-        async function fetchBoardData(): Promise<void> {
-            setIsLoadingBoard(true);
-            setErrorMessage(null);
-
-            try {
-                const [boardResponse, cellsResponse] =
-                    await Promise.all([
-                        boardAPI.getBoard(),
-                        boardAPI.getBoardCells(),
-                    ]);
-
-                const sortedCells =
-                    sortBoardCells(cellsResponse);
-
-                setBoard(boardResponse);
-                setBoardCells(sortedCells);
-                setOwnedProperties(
-                    getOwnedProperties(
-                        game.properties ?? [],
-                        sortedCells,
-                    ),
-                );
-            } catch (error) {
-                const message = getApiErrorMessage(
-                    error,
-                    'Không thể tải dữ liệu bàn cờ.',
-                );
-
-                setBoard(null);
-                setBoardCells([]);
-                setErrorMessage(message);
-                showToast(message, 'error');
-            } finally {
-                setIsLoadingBoard(false);
-            }
-        }
-
-        void fetchBoardData();
-    }, [game.properties, showToast]);
-
-    const currentGamePlayer = getCurrentGamePlayer(
-        gamePlayers,
+        boardFrameRef,
+        jailMoveAnimation,
+        moneyTransfer,
+        handleJailMoveAnimationComplete,
+        handleMoneyTransferComplete,
+        playJailMoveAnimation,
+        playRentTransferAnimation,
+        setPlayerMoneyElement,
+    } = useBoardAnimations();
+    const {
+        currentGamePlayer,
+        currentGamePlayerId,
+        currentPlayerName,
+        selectedCurrentJailActionType,
+    } = useCurrentPlayerInfo({
         currentPlayerId,
-    );
-    const currentPlayerName =
-        currentGamePlayer?.player.displayName ??
-        FALLBACK_PLAYER_NAME;
-    const currentGamePlayerId =
-        currentGamePlayer?.id ?? null;
+        players: gamePlayers,
+        selectedJailAction,
+    });
 
     async function handleRollDice(): Promise<RollDiceResponse | null> {
         if (
@@ -423,15 +142,44 @@ function Board({ game }: BoardProps) {
             return null;
         }
 
+        if (
+            currentGamePlayer.inJail &&
+            selectedCurrentJailActionType === null
+        ) {
+            return null;
+        }
+
         setIsRollingDice(true);
         setErrorMessage(null);
         setIsWaitingForAction(false);
         setDrawnCard(null);
+        setPendingCardResult(null);
         setLastMoveResult(null);
         setLandedPropertyInfo(null);
         setPendingNextPlayerId(null);
 
         try {
+            if (
+                currentGamePlayer.inJail &&
+                selectedCurrentJailActionType !== null
+            ) {
+                const jailAction =
+                    await gameAPI.handleJailAction(
+                        game.id,
+                        currentGamePlayer.id,
+                        {
+                            actionType:
+                                selectedCurrentJailActionType,
+                        },
+                    );
+
+                pendingJailActionResultRef.current =
+                    jailAction;
+                return toRollDiceResponseFromJailAction(
+                    jailAction,
+                );
+            }
+
             return await gameAPI.rollDice(
                 game.id,
                 currentGamePlayer.id,
@@ -453,58 +201,23 @@ function Board({ game }: BoardProps) {
     function handleRollDiceComplete(
         result: RollDiceResponse,
     ): void {
-        void handleResolvedMove(
-            toResolvedMoveFromRoll(result),
-        );
-    }
+        const jailAction =
+            pendingJailActionResultRef.current;
 
-    async function handleTestMoveToCell({
-        targetPosition,
-        rentDiceTotal,
-    }: TestMoveOptions): Promise<void> {
-        if (
-            boardCells.length === 0 ||
-            !currentGamePlayer ||
-            isPlayerMoving ||
-            isRollingDice ||
-            isWaitingForAction
-        ) {
+        if (jailAction) {
+            pendingJailActionResultRef.current = null;
+            void handleJailActionRollComplete(jailAction);
             return;
         }
 
-        setIsRollingDice(true);
-        setErrorMessage(null);
-        setIsWaitingForAction(false);
-        setDrawnCard(null);
-        setLastMoveResult(null);
-        setLandedPropertyInfo(null);
-        setPendingNextPlayerId(null);
-
-        try {
-            const testMoveResult = await gameAPI.testMove(
-                game.id,
-                currentGamePlayer.id,
-                {
-                    targetPosition,
-                    diceTotal: rentDiceTotal,
-                },
-            );
-
-            await handleResolvedMove({
-                ...toResolvedMoveFromRoll(testMoveResult),
-                rentDiceTotal,
-            });
-        } catch (error) {
-            const message = getApiErrorMessage(
-                error,
-                'Không thể test bước đi. Backend cần hỗ trợ API test-move.',
-            );
-
-            setErrorMessage(message);
-            showToast(message, 'error');
-            setIsWaitingForAction(false);
-            setIsRollingDice(false);
+        if (result.sentToJail) {
+            void handleTripleDoubleJailMove(result);
+            return;
         }
+
+        void handleResolvedMove(
+            toResolvedMoveFromRoll(result),
+        );
     }
 
     async function handleResolvedMove(
@@ -530,15 +243,23 @@ function Board({ game }: BoardProps) {
         }
 
         setGamePlayers((previousPlayers) =>
-            previousPlayers.map((player) =>
-                player.id === move.currentPlayerId
-                    ? {
-                          ...player,
-                          position: move.newPosition,
-                      }
-                    : player,
+            updateMovedPlayer(
+                previousPlayers,
+                move.currentPlayerId,
+                move.newPosition,
+                move.currentPlayerMoney,
             ),
         );
+
+        if (move.startReward > 0) {
+            showToast(
+                `${getGamePlayerName(
+                    gamePlayers,
+                    move.currentPlayerId,
+                )} nhận ${formatPlayerMoney(move.startReward)}$ khi đi qua ô bắt đầu.`,
+                'success',
+            );
+        }
 
         let landResult: LandCellResponse;
 
@@ -571,6 +292,7 @@ function Board({ game }: BoardProps) {
             cellName: landResult.cellName,
             cellType: landResult.cellType,
             action,
+            startReward: move.startReward,
         });
 
         if (action === 'PAY_RENT') {
@@ -590,6 +312,16 @@ function Board({ game }: BoardProps) {
                 move.nextPlayerId,
                 landResult,
                 {},
+            );
+            setIsRollingDice(false);
+            return;
+        }
+
+        if (action === 'GO_TO_JAIL') {
+            await handleGoToJailAfterLand(
+                move.currentPlayerId,
+                move.nextPlayerId,
+                landResult,
             );
             setIsRollingDice(false);
             return;
@@ -623,118 +355,34 @@ function Board({ game }: BoardProps) {
         setIsRollingDice(false);
     }
 
-    async function handlePayRentAfterLand(
-        payerGamePlayerId: number,
-        nextPlayerId: number,
-        landResult: LandCellResponse,
-        diceTotal: number,
-    ): Promise<void> {
-        try {
-            const rentPayment = await gameAPI.payRent(
-                game.id,
-                payerGamePlayerId,
-                {
-                    diceTotal,
-                },
-            );
-
-            updatePayerMoneyAfterRent(rentPayment);
-            await playRentTransferAnimation(rentPayment);
-            updateOwnerMoneyAfterRent(rentPayment);
-            setLastMoveResult({
-                playerName: getGamePlayerName(
-                    gamePlayers,
-                    payerGamePlayerId,
-                ),
-                cellId: landResult.cellId,
-                cellPosition: landResult.cellPosition,
-                cellName: landResult.cellName,
-                cellType: landResult.cellType,
-                action: landResult.action,
-                rentPayment: {
-                    payerName: getGamePlayerName(
-                        gamePlayers,
-                        rentPayment.payerGamePlayerId,
-                    ),
-                    ownerName: getGamePlayerName(
-                        gamePlayers,
-                        rentPayment.ownerGamePlayerId,
-                    ),
-                    propertyName:
-                        rentPayment.boardCellName,
-                    amountDue: rentPayment.rentAmount,
-                    amountPaid: rentPayment.rentAmount,
-                },
-            });
-            setLandedPropertyInfo(null);
-            setIsWaitingForAction(false);
-            setCurrentPlayerId(nextPlayerId);
-            setPendingNextPlayerId(null);
-            setDiceResetCount((currentCount) => currentCount + 1);
-        } catch (error) {
-            const message = getApiErrorMessage(
-                error,
-                'Không thể trả tiền thuê.',
-            );
-
-            setErrorMessage(message);
-            showToast(message, 'error');
-            setIsWaitingForAction(false);
-            setCurrentPlayerId(nextPlayerId);
-            setPendingNextPlayerId(null);
-            setDiceResetCount((currentCount) => currentCount + 1);
-        }
-    }
-
-    function updatePayerMoneyAfterRent(
-        rentPayment: PayRentResponse,
-    ): void {
-        setGamePlayers((previousPlayers) =>
-            previousPlayers.map((player) => {
-                if (
-                    player.id ===
-                    rentPayment.payerGamePlayerId
-                ) {
-                    return {
-                        ...player,
-                        money: rentPayment.payerMoney,
-                    };
-                }
-
-                return player;
-            }),
-        );
-    }
-
-    function updateOwnerMoneyAfterRent(
-        rentPayment: PayRentResponse,
-    ): void {
-        setGamePlayers((previousPlayers) =>
-            previousPlayers.map((player) =>
-                player.id === rentPayment.ownerGamePlayerId
-                    ? {
-                          ...player,
-                          money: rentPayment.ownerMoney,
-                      }
-                    : player,
-            ),
-        );
-    }
-
-    async function handlePayTaxAfterLand(
+    async function handleGoToJailAfterLand(
         gamePlayerId: number,
         nextPlayerId: number,
         landResult: LandCellResponse,
-        request: { incomeTaxOption?: IncomeTaxOption },
     ): Promise<void> {
         try {
-            const taxPayment = await gameAPI.payTax(
+            const jailedPlayer = gamePlayers.find(
+                (player) => player.id === gamePlayerId,
+            );
+            const goToJailResult = await gameAPI.goToJail(
                 game.id,
                 gamePlayerId,
-                request,
             );
 
-            updatePlayerMoneyAfterTax(gamePlayerId, taxPayment);
+            if (jailedPlayer) {
+                await playJailMoveAnimation(
+                    jailedPlayer,
+                    goToJailResult.fromPosition,
+                    goToJailResult.jailPosition,
+                );
+            }
+
+            setGamePlayers((previousPlayers) =>
+                applyPlayerAfterGoToJail(
+                    previousPlayers,
+                    goToJailResult,
+                ),
+            );
             setLastMoveResult({
                 playerName: getGamePlayerName(
                     gamePlayers,
@@ -745,7 +393,12 @@ function Board({ game }: BoardProps) {
                 cellName: landResult.cellName,
                 cellType: landResult.cellType,
                 action: landResult.action,
-                taxPaid: taxPayment.taxAmount,
+                jailMove: {
+                    playerName: getGamePlayerName(
+                        gamePlayers,
+                        gamePlayerId,
+                    ),
+                },
             });
             setLandedPropertyInfo(null);
             setIsWaitingForAction(false);
@@ -753,13 +406,16 @@ function Board({ game }: BoardProps) {
             setPendingNextPlayerId(null);
             setDiceResetCount((currentCount) => currentCount + 1);
             showToast(
-                `ÄÃ£ Ä‘Ã³ng thuáº¿ ${formatTaxAmount(taxPayment)}.`,
-                'success',
+                `${getGamePlayerName(
+                    gamePlayers,
+                    gamePlayerId,
+                )} bị đưa vào tù.`,
+                'info',
             );
         } catch (error) {
             const message = getApiErrorMessage(
                 error,
-                'KhÃ´ng thá»ƒ Ä‘Ã³ng thuáº¿.',
+                'Không thể đưa người chơi vào tù.',
             );
 
             setErrorMessage(message);
@@ -769,159 +425,6 @@ function Board({ game }: BoardProps) {
             setPendingNextPlayerId(null);
             setDiceResetCount((currentCount) => currentCount + 1);
         }
-    }
-
-    function updatePlayerMoneyAfterTax(
-        gamePlayerId: number,
-        taxPayment: PayTaxResponse,
-    ): void {
-        setGamePlayers((previousPlayers) =>
-            previousPlayers.map((player) =>
-                player.id === gamePlayerId
-                    ? {
-                          ...player,
-                          money: taxPayment.playerMoney,
-                      }
-                    : player,
-            ),
-        );
-    }
-
-    function formatTaxAmount(
-        taxPayment: PayTaxResponse,
-    ): string {
-        return taxPayment.taxAmount.toLocaleString('en-US');
-    }
-
-    async function handleDrawChanceCard(): Promise<void> {
-        setErrorMessage(null);
-
-        try {
-            const card = await cardAPI.drawChanceCardForGame(
-                game.id,
-                currentGamePlayerId,
-            );
-            setDrawnCard({
-                ...card,
-                type: 'CHANCE',
-            });
-        } catch (error) {
-            const message = getApiErrorMessage(
-                error,
-                'Không thể rút thẻ Cơ hội.',
-            );
-            setErrorMessage(message);
-            showToast(message, 'error');
-            setIsWaitingForAction(false);
-            finishPendingTurn();
-        }
-    }
-
-    async function handleDrawCommunityCard(): Promise<void> {
-        setErrorMessage(null);
-
-        try {
-            const card =
-                await cardAPI.drawCommunityCardForGame(
-                    game.id,
-                    currentGamePlayerId,
-                );
-            setDrawnCard({
-                ...card,
-                type: 'COMMUNITY',
-            });
-        } catch (error) {
-            const message = getApiErrorMessage(
-                error,
-                'Không thể rút thẻ Khí vận.',
-            );
-            setErrorMessage(message);
-            showToast(message, 'error');
-            setIsWaitingForAction(false);
-            finishPendingTurn();
-        }
-    }
-
-    async function handleBuyProperty(): Promise<void> {
-        if (!currentGamePlayer || !landedCell) {
-            return;
-        }
-
-        setErrorMessage(null);
-
-        try {
-            const boughtProperty =
-                await gameAPI.buyProperty(
-                    game.id,
-                    currentGamePlayer.id,
-                    landedCell.id,
-                );
-
-            setGamePlayers((previousPlayers) =>
-                previousPlayers.map((player) =>
-                    player.id ===
-                    boughtProperty.ownerGamePlayerId
-                        ? {
-                              ...player,
-                              money: boughtProperty.ownerMoney,
-                          }
-                        : player,
-                ),
-            );
-            setOwnedProperties((previousProperties) => [
-                ...previousProperties.filter(
-                    (property) =>
-                        property.boardCellId !==
-                        boughtProperty.boardCellId,
-                ),
-                toOwnedPropertyCardFromBuy(
-                    boughtProperty,
-                    landedCell,
-                ),
-            ]);
-            showToast('Mua tài sản thành công.', 'success');
-            clearPendingAction();
-        } catch (error) {
-            const message = getApiErrorMessage(
-                error,
-                'Không thể mua tài sản.',
-            );
-
-            setErrorMessage(message);
-            showToast(message, 'error');
-        }
-    }
-
-    function handlePayFixedIncomeTax(): void {
-        void handlePayIncomeTax('FIXED');
-    }
-
-    function handlePayPercentIncomeTax(): void {
-        void handlePayIncomeTax('PERCENT');
-    }
-
-    async function handlePayIncomeTax(
-        incomeTaxOption: IncomeTaxOption,
-    ): Promise<void> {
-        if (!currentGamePlayer || !lastMoveResult) {
-            return;
-        }
-
-        await handlePayTaxAfterLand(
-            currentGamePlayer.id,
-            pendingNextPlayerId ?? currentGamePlayer.id,
-            {
-                cellId: lastMoveResult.cellId,
-                cellPosition: lastMoveResult.cellPosition,
-                cellName: lastMoveResult.cellName,
-                cellType: lastMoveResult.cellType,
-                action: lastMoveResult.action,
-                property: null,
-            },
-            {
-                incomeTaxOption,
-            },
-        );
     }
 
     function finishPendingTurn(): void {
@@ -935,10 +438,46 @@ function Board({ game }: BoardProps) {
 
     function clearPendingAction(): void {
         setDrawnCard(null);
+        setPendingCardResult(null);
         setIsWaitingForAction(false);
         setLastMoveResult(null);
         setLandedPropertyInfo(null);
         finishPendingTurn();
+    }
+
+    function handleExecuteCard(): void {
+        if (pendingCardResult !== null) {
+            setGamePlayers((previousPlayers) =>
+                updatePlayersAfterCardDraw(
+                    previousPlayers,
+                    pendingCardResult,
+                ),
+            );
+
+            if (pendingCardResult.startReward > 0) {
+                showToast(
+                    `${getGamePlayerName(
+                        gamePlayers,
+                        pendingCardResult.gamePlayerId,
+                    )} nhận ${formatPlayerMoney(
+                        pendingCardResult.startReward,
+                    )}$ khi đi qua ô bắt đầu.`,
+                    'success',
+                );
+            }
+
+            if (pendingCardResult.sentToJail) {
+                showToast(
+                    `${getGamePlayerName(
+                        gamePlayers,
+                        pendingCardResult.gamePlayerId,
+                    )} bị đưa vào tù.`,
+                    'info',
+                );
+            }
+        }
+
+        clearPendingAction();
     }
 
     const hasBoardCells = boardCells.length > 0;
@@ -955,6 +494,112 @@ function Board({ game }: BoardProps) {
         landedPropertyInfo.buyPrice !== null &&
         currentGamePlayer !== null &&
         currentGamePlayer.money >= landedPropertyInfo.buyPrice;
+    const {
+        handleJailAction,
+        handleJailActionRollComplete,
+        handleTripleDoubleJailMove,
+    } = useJailActions({
+        boardCells,
+        currentGamePlayer,
+        gamePlayers,
+        handleResolvedMove,
+        isPlayerMoving,
+        isRollingDice,
+        isWaitingForAction,
+        playJailMoveAnimation,
+        setCurrentPlayerId,
+        setDiceResetCount,
+        setDrawnCard,
+        setErrorMessage,
+        setGamePlayers,
+        setIsRollingDice,
+        setIsWaitingForAction,
+        setLandedPropertyInfo,
+        setLastMoveResult,
+        setPendingNextPlayerId,
+        setSelectedJailAction,
+        showToast,
+    });
+    const { handlePayRentAfterLand } =
+        useRentPaymentAction({
+            gameId: game.id,
+            gamePlayers,
+            playRentTransferAnimation,
+            setCurrentPlayerId,
+            setDiceResetCount,
+            setErrorMessage,
+            setGamePlayers,
+            setIsWaitingForAction,
+            setLandedPropertyInfo,
+            setLastMoveResult,
+            setPendingNextPlayerId,
+            showToast,
+        });
+    const {
+        handlePayFixedIncomeTax,
+        handlePayPercentIncomeTax,
+        handlePayTaxAfterLand,
+    } = useTaxPaymentAction({
+        currentGamePlayer,
+        gameId: game.id,
+        gamePlayers,
+        lastMoveResult,
+        pendingNextPlayerId,
+        setCurrentPlayerId,
+        setDiceResetCount,
+        setErrorMessage,
+        setGamePlayers,
+        setIsWaitingForAction,
+        setLandedPropertyInfo,
+        setLastMoveResult,
+        setPendingNextPlayerId,
+        showToast,
+    });
+    const {
+        handleDrawChanceCard,
+        handleDrawCommunityCard,
+    } = useBoardCardActions({
+        currentGamePlayerId,
+        finishPendingTurn,
+        gameId: game.id,
+        setDrawnCard,
+        setPendingCardResult,
+        setErrorMessage,
+        setIsWaitingForAction,
+        showToast,
+    });
+    const { handleBuyProperty } =
+        usePropertyPurchaseAction({
+            clearPendingAction,
+            currentGamePlayer,
+            gameId: game.id,
+            landedCell,
+            setErrorMessage,
+            setGamePlayers,
+            setOwnedProperties,
+            showToast,
+        });
+    const {
+        handleTestMoveToCell,
+        handleTestRollDice,
+    } = useTestMoveActions({
+        boardCellCount: boardCells.length,
+        currentGamePlayer,
+        gameId: game.id,
+        handleResolvedMove,
+        handleTripleDoubleJailMove,
+        isPlayerMoving,
+        isRollingDice,
+        isWaitingForAction,
+        setDrawnCard,
+        setErrorMessage,
+        setIsRollingDice,
+        setIsWaitingForAction,
+        setLandedPropertyInfo,
+        setLastMoveResult,
+        setPendingNextPlayerId,
+        showToast,
+    });
 
     return (
         <div className="board-shell relative flex items-center justify-center">
@@ -975,7 +620,10 @@ function Board({ game }: BoardProps) {
                 onComplete={handleMoneyTransferComplete}
             />
 
-            <div className="board-frame relative aspect-square">
+            <div
+                ref={boardFrameRef}
+                className="board-frame relative aspect-square"
+            >
                 <BoardGrid boardCells={boardCells}>
                     <BoardCenter
                         onRoll={handleRollDice}
@@ -995,19 +643,14 @@ function Board({ game }: BoardProps) {
                         onDrawCommunityCard={
                             handleDrawCommunityCard
                         }
-                        onExecuteCard={clearPendingAction}
+                        onExecuteCard={handleExecuteCard}
                         onPayFixedIncomeTax={
                             handlePayFixedIncomeTax
                         }
                         onPayPercentIncomeTax={
                             handlePayPercentIncomeTax
                         }
-                        onUseJailFreeCard={
-                            clearPendingAction
-                        }
-                        onSkipJailFreeCard={
-                            clearPendingAction
-                        }
+                        onJailAction={handleJailAction}
                         isPlayerMoving={isPlayerMoving}
                         isRollingDice={isRollingDice}
                         isWaitingForAction={
@@ -1016,8 +659,17 @@ function Board({ game }: BoardProps) {
                         currentPlayerName={
                             currentPlayerName
                         }
+                        currentPlayerMoney={
+                            currentGamePlayer?.money ?? 0
+                        }
                         currentPlayerInJail={
                             currentGamePlayer?.inJail ?? false
+                        }
+                        selectedJailActionType={
+                            selectedCurrentJailActionType
+                        }
+                        currentPlayerJailTurn={
+                            currentGamePlayer?.jailTurn ?? 0
                         }
                         currentPlayerJailFreeCardCount={
                             currentGamePlayer?.jailFreeCard ??
@@ -1045,13 +697,31 @@ function Board({ game }: BoardProps) {
                                 !hasBoardCells
                             }
                             onMoveToCell={handleTestMoveToCell}
+                            onRollDice={handleTestRollDice}
                         />
                     )}
                 </BoardGrid>
 
                 <PlayerLayer
                     players={gamePlayers}
+                    hiddenPlayerIds={
+                        jailMoveAnimation
+                            ? [jailMoveAnimation.player.id]
+                            : []
+                    }
                 />
+
+                {jailMoveAnimation && (
+                    <JailMoveAnimation
+                        key={jailMoveAnimation.id}
+                        player={jailMoveAnimation.player}
+                        from={jailMoveAnimation.from}
+                        to={jailMoveAnimation.to}
+                        onComplete={
+                            handleJailMoveAnimationComplete
+                        }
+                    />
+                )}
 
                 {isLoadingBoard && (
                     <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/90 text-sm font-bold text-slate-700">

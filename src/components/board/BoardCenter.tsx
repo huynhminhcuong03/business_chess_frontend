@@ -5,7 +5,10 @@ import type {
     LastMoveResult,
     PropertyOwnership,
 } from '../../types/game';
-import type { RollDiceResponse } from '../../types/gameApi';
+import type {
+    JailActionType,
+    RollDiceResponse,
+} from '../../types/gameApi';
 import CardDeckButton from '../card/CardDeckButton';
 import CardResultModal from '../card/CardResultModal';
 import DicePanel from '../dice/DicePanel';
@@ -27,13 +30,15 @@ interface BoardCenterProps {
     onExecuteCard: () => void;
     onPayFixedIncomeTax: () => void;
     onPayPercentIncomeTax: () => void;
-    onUseJailFreeCard: () => void;
-    onSkipJailFreeCard: () => void;
+    onJailAction: (actionType: JailActionType) => void;
     isPlayerMoving: boolean;
     isRollingDice: boolean;
     isWaitingForAction: boolean;
     currentPlayerName: string;
+    currentPlayerMoney: number;
     currentPlayerInJail: boolean;
+    selectedJailActionType: JailActionType | null;
+    currentPlayerJailTurn: number;
     currentPlayerJailFreeCardCount: number;
     landedProperty: BoardCell | null;
     landedPropertyOwnership: PropertyOwnership | null;
@@ -58,13 +63,15 @@ function BoardCenter({
     onExecuteCard,
     onPayFixedIncomeTax,
     onPayPercentIncomeTax,
-    onUseJailFreeCard,
-    onSkipJailFreeCard,
+    onJailAction,
     isPlayerMoving,
     isRollingDice,
     isWaitingForAction,
     currentPlayerName,
+    currentPlayerMoney,
     currentPlayerInJail,
+    selectedJailActionType,
+    currentPlayerJailTurn,
     currentPlayerJailFreeCardCount,
     landedProperty,
     landedPropertyOwnership,
@@ -102,10 +109,11 @@ function BoardCenter({
     const isWaitingForCardDraw =
         canDrawChanceCard ||
         canDrawCommunityCard;
-    const shouldChooseJailFreeCard =
+    const shouldChooseJailAction =
         currentPlayerInJail &&
-        currentPlayerJailFreeCardCount > 0 &&
+        selectedJailActionType === null &&
         !isPlayerMoving &&
+        !isRollingDice &&
         !isWaitingForAction &&
         drawnCard === null;
 
@@ -114,7 +122,7 @@ function BoardCenter({
         !canChooseBuildAction &&
         !canChooseIncomeTax &&
         !isWaitingForCardDraw &&
-        !shouldChooseJailFreeCard &&
+        !shouldChooseJailAction &&
         drawnCard === null;
 
     return (
@@ -172,14 +180,23 @@ function BoardCenter({
                     </div>
                 )}
 
-                {shouldChooseJailFreeCard && (
+                {shouldChooseJailAction && (
                     <JailDecisionPanel
                         playerName={currentPlayerName}
+                        playerMoney={currentPlayerMoney}
+                        jailTurn={currentPlayerJailTurn}
                         jailFreeCardCount={
                             currentPlayerJailFreeCardCount
                         }
-                        onUseCard={onUseJailFreeCard}
-                        onSkipCard={onSkipJailFreeCard}
+                        onPayFine={() =>
+                            onJailAction('PAY_FINE')
+                        }
+                        onRollForDouble={() =>
+                            onJailAction('ROLL_FOR_DOUBLE')
+                        }
+                        onUseCard={() =>
+                            onJailAction('USE_JAIL_CARD')
+                        }
                     />
                 )}
             </div>

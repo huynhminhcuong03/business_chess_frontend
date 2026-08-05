@@ -2,7 +2,11 @@ import type { ApiResponse } from '../types/api';
 import type {
     BuyPropertyResponse,
     CreateGameRequest,
+    DrawCardResponse,
     GameResponse,
+    GoToJailResponse,
+    JailActionRequest,
+    JailActionResponse,
     LandCellResponse,
     PayRentRequest,
     PayRentResponse,
@@ -10,6 +14,7 @@ import type {
     PayTaxResponse,
     RollDiceResponse,
     TestMoveRequest,
+    TestRollRequest,
 } from '../types/gameApi';
 import { axiosClient } from './axiosClient';
 
@@ -78,6 +83,22 @@ export const gameAPI = {
         return response.data;
     },
 
+    async testRoll(
+        gameId: number,
+        gamePlayerId: number,
+        request: TestRollRequest,
+    ): Promise<RollDiceResponse> {
+        const response =
+            await axiosClient.post<
+                ApiResponse<RollDiceResponse>
+            >(
+                `${GAME_ENDPOINT}/${gameId}/play/players/${gamePlayerId}/test-roll`,
+                request,
+            );
+
+        return response.data;
+    },
+
     async landCell(
         gameId: number,
         gamePlayerId: number,
@@ -135,6 +156,52 @@ export const gameAPI = {
                 ApiResponse<PayTaxResponse>
             >(
                 `${GAME_ENDPOINT}/${gameId}/play/players/${gamePlayerId}/tax/pay`,
+                request,
+            );
+
+        return response.data;
+    },
+
+    async drawCard(
+        gameId: number,
+        gamePlayerId: number,
+    ): Promise<DrawCardResponse> {
+        const response =
+            await axiosClient.post<
+                ApiResponse<DrawCardResponse>
+            >(
+                `${GAME_ENDPOINT}/${gameId}/play/players/${gamePlayerId}/cards/draw`,
+                undefined,
+            );
+
+        return response.data;
+    },
+
+    async goToJail(
+        gameId: number,
+        gamePlayerId: number,
+    ): Promise<GoToJailResponse> {
+        const response =
+            await axiosClient.post<
+                ApiResponse<GoToJailResponse>
+            >(
+                `${GAME_ENDPOINT}/${gameId}/play/players/${gamePlayerId}/jail/go-to-jail`,
+                undefined,
+            );
+
+        return response.data;
+    },
+
+    async handleJailAction(
+        gameId: number,
+        gamePlayerId: number,
+        request: JailActionRequest,
+    ): Promise<JailActionResponse> {
+        const response =
+            await axiosClient.post<
+                ApiResponse<JailActionResponse>
+            >(
+                `${GAME_ENDPOINT}/${gameId}/play/players/${gamePlayerId}/jail/action`,
                 request,
             );
 
