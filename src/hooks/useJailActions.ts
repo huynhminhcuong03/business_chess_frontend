@@ -35,6 +35,10 @@ interface UseJailActionsOptions {
         fromPosition: number,
         jailPosition: number,
     ) => Promise<void>;
+    playBankTransferAnimation: (
+        gamePlayerId: number,
+        moneyDelta: number,
+    ) => Promise<void>;
     setCurrentPlayerId: Dispatch<SetStateAction<number | null>>;
     setDiceResetCount: Dispatch<SetStateAction<number>>;
     setDrawnCard: Dispatch<SetStateAction<GameCard | null>>;
@@ -68,6 +72,7 @@ export function useJailActions({
     isRollingDice,
     isWaitingForAction,
     playJailMoveAnimation,
+    playBankTransferAnimation,
     setCurrentPlayerId,
     setDiceResetCount,
     setDrawnCard,
@@ -171,6 +176,13 @@ export function useJailActions({
         jailAction: JailActionResponse,
     ): Promise<void> {
         try {
+            if ((jailAction.finePaid ?? 0) > 0) {
+                await playBankTransferAnimation(
+                    jailAction.currentPlayerId,
+                    -jailAction.finePaid,
+                );
+            }
+
             setGamePlayers((previousPlayers) =>
                 applyPlayerAfterJailAction(
                     previousPlayers,

@@ -14,6 +14,7 @@ interface MovePlayerOptions {
     playerId: number;
     startPosition: number;
     stepCount: number;
+    onPassStart?: () => void;
 }
 
 interface UseStepPlayerMovementOptions {
@@ -65,6 +66,7 @@ export function useStepPlayerMovement({
             playerId,
             startPosition,
             stepCount,
+            onPassStart,
         }: MovePlayerOptions): Promise<number> => {
             if (boardCellCount <= 0) {
                 return startPosition;
@@ -96,6 +98,10 @@ export function useStepPlayerMovement({
                                 : player,
                         ),
                     );
+
+                    if (nextPosition === 0 && onPassStart) {
+                        onPassStart();
+                    }
                 }
             } finally {
                 setIsPlayerMoving(false);

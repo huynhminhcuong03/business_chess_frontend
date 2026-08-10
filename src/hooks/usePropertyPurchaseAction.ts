@@ -12,6 +12,10 @@ interface UsePropertyPurchaseActionOptions {
     currentGamePlayer: GamePlayerResponse | null;
     gameId: number;
     landedCell: BoardCellData | null;
+    playBankTransferAnimation: (
+        gamePlayerId: number,
+        moneyDelta: number,
+    ) => Promise<void>;
     setErrorMessage: Dispatch<SetStateAction<string | null>>;
     setGamePlayers: Dispatch<
         SetStateAction<GamePlayerResponse[]>
@@ -27,6 +31,7 @@ export function usePropertyPurchaseAction({
     currentGamePlayer,
     gameId,
     landedCell,
+    playBankTransferAnimation,
     setErrorMessage,
     setGamePlayers,
     setOwnedProperties,
@@ -46,6 +51,10 @@ export function usePropertyPurchaseAction({
                     currentGamePlayer.id,
                     landedCell.id,
                 );
+
+            const moneyDelta =
+                boughtProperty.ownerMoney -
+                currentGamePlayer.money;
 
             setGamePlayers((previousPlayers) =>
                 previousPlayers.map((player) =>
@@ -69,8 +78,13 @@ export function usePropertyPurchaseAction({
                     landedCell,
                 ),
             ]);
-            showToast('Mua tài sản thành công.', 'success');
             clearPendingAction();
+
+            await playBankTransferAnimation(
+                currentGamePlayer.id,
+                moneyDelta,
+            );
+            showToast('Mua tài sản thành công.', 'success');
         } catch (error) {
             const message = getApiErrorMessage(
                 error,

@@ -68,6 +68,7 @@ export function useTestMoveActions({
         if (
             boardCellCount === 0 ||
             !currentGamePlayer ||
+            currentGamePlayer.inJail ||
             isPlayerMoving ||
             isRollingDice ||
             isWaitingForAction

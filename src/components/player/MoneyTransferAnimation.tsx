@@ -4,6 +4,7 @@ import { formatPlayerMoney } from '../../utils/formatMoney';
 export interface MoneyTransfer {
     id: number;
     amount: number;
+    sign?: '+' | '-';
     from: {
         x: number;
         y: number;
@@ -48,7 +49,8 @@ function MoneyTransferAnimation({
                     <span className="money-transfer-bill">$</span>
                 </div>
                 <span className="money-transfer-amount">
-                    -{formatPlayerMoney(transfer.amount)}
+                    {transfer.sign ?? '-'}
+                    {formatPlayerMoney(transfer.amount)}
                 </span>
             </div>
         </div>

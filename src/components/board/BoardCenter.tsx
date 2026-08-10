@@ -48,6 +48,8 @@ interface BoardCenterProps {
     canAffordPropertyImprovement: boolean;
     lastMoveResult: LastMoveResult | null;
     drawnCard: GameCard | null;
+    pendingUtilityRentPayment?: boolean;
+    diceButtonLabel?: string;
 }
 
 function BoardCenter({
@@ -81,6 +83,8 @@ function BoardCenter({
     canAffordPropertyImprovement,
     lastMoveResult,
     drawnCard,
+    pendingUtilityRentPayment,
+    diceButtonLabel,
 }: BoardCenterProps) {
     const canChoosePropertyAction =
         isWaitingForAction &&
@@ -176,6 +180,7 @@ function BoardCenter({
                             currentPlayerName={
                                 currentPlayerName
                             }
+                            buttonLabel={diceButtonLabel}
                         />
                     </div>
                 )}

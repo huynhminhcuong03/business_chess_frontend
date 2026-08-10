@@ -7,6 +7,7 @@ interface DicePanelProps {
     onRollComplete: (result: RollDiceResponse) => void;
     disabled: boolean;
     currentPlayerName: string;
+    buttonLabel?: string;
 }
 
 const DICE_ANIMATION_DURATION = 900;
@@ -15,6 +16,7 @@ function DicePanel({
     onRoll,
     onRollComplete,
     disabled,
+    buttonLabel,
 }: DicePanelProps) {
     const [firstDiceValue, setFirstDiceValue] =
         useState<number>(1);
@@ -58,7 +60,7 @@ function DicePanel({
                     disabled={disabled || isRolling}
                     className="dice-roll-button rounded-xl bg-slate-800 font-bold text-white shadow-lg transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400"
                 >
-                    Tung xúc xắc
+                    {buttonLabel ?? 'Tung xúc xắc'}
                 </button>
             )}
 

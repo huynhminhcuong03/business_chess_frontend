@@ -19,6 +19,10 @@ interface UseTaxPaymentActionOptions {
     gamePlayers: GamePlayerResponse[];
     lastMoveResult: LastMoveResult | null;
     pendingNextPlayerId: number | null;
+    playBankTransferAnimation: (
+        gamePlayerId: number,
+        moneyDelta: number,
+    ) => Promise<void>;
     setCurrentPlayerId: Dispatch<SetStateAction<number | null>>;
     setDiceResetCount: Dispatch<SetStateAction<number>>;
     setErrorMessage: Dispatch<SetStateAction<string | null>>;
@@ -48,6 +52,7 @@ export function useTaxPaymentAction({
     gamePlayers,
     lastMoveResult,
     pendingNextPlayerId,
+    playBankTransferAnimation,
     setCurrentPlayerId,
     setDiceResetCount,
     setErrorMessage,
@@ -71,6 +76,11 @@ export function useTaxPaymentAction({
                 request,
             );
 
+            setIsWaitingForAction(false);
+            await playBankTransferAnimation(
+                gamePlayerId,
+                -taxPayment.taxAmount,
+            );
             setGamePlayers((previousPlayers) =>
                 applyPlayerMoneyAfterTax(
                     previousPlayers,
@@ -91,7 +101,6 @@ export function useTaxPaymentAction({
                 taxPaid: taxPayment.taxAmount,
             });
             setLandedPropertyInfo(null);
-            setIsWaitingForAction(false);
             setCurrentPlayerId(nextPlayerId);
             setPendingNextPlayerId(null);
             setDiceResetCount((currentCount) => currentCount + 1);

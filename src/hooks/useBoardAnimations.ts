@@ -19,6 +19,21 @@ function getElementCenter(
     };
 }
 
+function getBoardFrameViewportCenter(
+    boardFrame: HTMLDivElement | null,
+): { x: number; y: number } | null {
+    if (!boardFrame) {
+        return null;
+    }
+
+    const rect = boardFrame.getBoundingClientRect();
+
+    return {
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2,
+    };
+}
+
 export function useBoardAnimations() {
     const boardFrameRef = useRef<HTMLDivElement>(null);
     const playerMoneyElementsRef = useRef<
@@ -84,8 +99,52 @@ export function useBoardAnimations() {
             setMoneyTransfer({
                 id: Date.now(),
                 amount: rentPayment.rentAmount,
+                sign: '-',
                 from: getElementCenter(payerElement),
                 to: getElementCenter(ownerElement),
+            });
+
+            window.setTimeout(() => {
+                if (moneyTransferResolveRef.current) {
+                    handleMoneyTransferComplete();
+                }
+            }, MONEY_TRANSFER_FALLBACK_DURATION);
+        });
+    }
+
+    function playBankTransferAnimation(
+        gamePlayerId: number,
+        moneyDelta: number,
+    ): Promise<void> {
+        if (moneyDelta === 0) {
+            return Promise.resolve();
+        }
+
+        const playerElement =
+            playerMoneyElementsRef.current.get(gamePlayerId);
+        const boardCenter = getBoardFrameViewportCenter(
+            boardFrameRef.current,
+        );
+
+        if (!playerElement || !boardCenter) {
+            return Promise.resolve();
+        }
+
+        const playerCenter = getElementCenter(playerElement);
+        const isReceivingMoney = moneyDelta > 0;
+
+        return new Promise((resolve) => {
+            moneyTransferResolveRef.current = resolve;
+            setMoneyTransfer({
+                id: Date.now(),
+                amount: Math.abs(moneyDelta),
+                sign: isReceivingMoney ? '+' : '-',
+                from: isReceivingMoney
+                    ? boardCenter
+                    : playerCenter,
+                to: isReceivingMoney
+                    ? playerCenter
+                    : boardCenter,
             });
 
             window.setTimeout(() => {
@@ -138,6 +197,7 @@ export function useBoardAnimations() {
         handleJailMoveAnimationComplete,
         handleMoneyTransferComplete,
         playJailMoveAnimation,
+        playBankTransferAnimation,
         playRentTransferAnimation,
         setPlayerMoneyElement,
     };

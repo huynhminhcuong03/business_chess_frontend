@@ -85,6 +85,7 @@ export interface LandedPropertyResponse {
     houseCount: number;
     hasHotel: boolean;
     mortgaged: boolean;
+    diceRollRequired?: boolean;
 }
 
 export interface LandCellResponse {
